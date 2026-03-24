@@ -18,7 +18,7 @@ const config: Config = {
         'app-text': '#5C4A6E',
       },
       fontFamily: {
-        baloo: ['"ZCOOL KuaiLe"', '"Baloo 2"', 'cursive'],
+        baloo: ['"Microsoft JhengHei"', 'Arial', 'sans-serif'],
       },
     },
   },
