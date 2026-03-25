@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
+import { Plus, Copy } from 'lucide-react'
+import { useState } from 'react'
 import BunnySVG from './BunnySVG'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { getAvailableCarrots } from '@/lib/balance'
@@ -18,15 +19,31 @@ interface BunnyCardProps {
 
 export default function BunnyCard({ child, entries, trades, month, currentUser, onAddScore }: BunnyCardProps) {
   const { t } = useLanguage()
+  const [copied, setCopied] = useState(false)
   const monthEarned = entries.filter(e => e.date.startsWith(month)).reduce((sum, e) => sum + e.points, 0)
   const available = getAvailableCarrots(child.id, entries, trades)
   const isOwner = currentUser?.role === 'owner'
+
+  const handleCopyId = (e: React.MouseEvent) => {
+    e.preventDefault()
+    navigator.clipboard.writeText(child.public_id)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div className="bg-white rounded-3xl shadow-md border-2 border-primary/20 p-6 flex flex-col items-center gap-3 hover:shadow-lg transition-shadow">
       <Link href={`/child/${child.id}`} className="flex flex-col items-center gap-3 w-full">
         <BunnySVG color={child.bunny_color} size={100} />
         <h2 className="text-xl font-bold text-app-text">{child.name}</h2>
+        {child.public_id && (
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-xs text-app-text/50 bg-lemon/60 px-2 py-0.5 rounded-lg">{child.public_id}</span>
+            <button onClick={handleCopyId} className="p-1 rounded-lg hover:bg-lavender/30 text-app-text/40 hover:text-app-text transition" title="Copy Bunny ID">
+              <Copy size={12} />
+            </button>
+          </div>
+        )}
         <div className="flex flex-col items-center gap-1 w-full">
           <div className="flex items-center gap-2 bg-lemon rounded-2xl px-4 py-2 w-full justify-center">
             <span className="text-xl">🥕</span>
