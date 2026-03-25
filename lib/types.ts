@@ -6,6 +6,7 @@ export interface User {
   name: string
   role: Role
   avatar_color: string
+  passcode?: string
   created_at: string
 }
 

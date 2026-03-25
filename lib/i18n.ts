@@ -137,6 +137,20 @@ const translations = {
     noViewers: 'No viewer accounts yet',
     linkedTo: 'Linked to',
 
+    // Passcode
+    setPasscode: 'Set Passcode',
+    changePasscode: 'Change Passcode',
+    passcodeLabel: '4-Digit Passcode',
+    confirmPasscodeLabel: 'Confirm Passcode',
+    passcodeHint: 'Required to add carrots',
+    enterPasscode: 'Enter Passcode',
+    enterPasscodeHint: 'Enter your 4-digit passcode to confirm',
+    wrongPasscode: 'Wrong passcode. Try again.',
+    passcodeMismatch: 'Passcodes do not match.',
+    passcodeInvalid: 'Passcode must be exactly 4 digits.',
+    passcodeSet: '🔐 Passcode saved!',
+    noPasscodeWarning: '⚠️ No passcode set — set one to protect adding carrots.',
+
     // Earning Rules
     earningRulesTitle: 'How to Earn Carrots',
     earningRulesSubtitle: 'Complete these activities to earn 🥕!',
@@ -294,6 +308,20 @@ const translations = {
     linkViewerHint: '選填 — 讓孩子登入並管理自己的兔兔',
     noViewers: '目前沒有觀看者帳號',
     linkedTo: '連結至',
+
+    // Passcode
+    setPasscode: '設定密碼',
+    changePasscode: '更改密碼',
+    passcodeLabel: '4位數密碼',
+    confirmPasscodeLabel: '確認密碼',
+    passcodeHint: '新增紅蘿蔔時需要',
+    enterPasscode: '輸入密碼',
+    enterPasscodeHint: '輸入4位數密碼以確認',
+    wrongPasscode: '密碼錯誤，請重試。',
+    passcodeMismatch: '兩次密碼不符。',
+    passcodeInvalid: '密碼必須為4位數字。',
+    passcodeSet: '🔐 密碼已儲存！',
+    noPasscodeWarning: '⚠️ 尚未設定密碼 — 請設定以保護新增紅蘿蔔功能。',
 
     // Earning Rules
     earningRulesTitle: '如何賺取紅蘿蔔',

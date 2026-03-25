@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Lock, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import Navbar from '@/components/Navbar'
@@ -24,6 +24,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showAddChild, setShowAddChild] = useState(false)
+  const [showPasscodeModal, setShowPasscodeModal] = useState(false)
+  const [newPasscode, setNewPasscode] = useState('')
+  const [confirmPasscode, setConfirmPasscode] = useState('')
+  const [passcodeMsg, setPasscodeMsg] = useState('')
 
   const supabase = createClient()
 
@@ -52,6 +56,16 @@ export default function Dashboard() {
   }
 
   useEffect(() => { fetchData() }, [])
+
+  const handleSavePasscode = async () => {
+    setPasscodeMsg('')
+    if (!/^\d{4}$/.test(newPasscode)) { setPasscodeMsg(t('passcodeInvalid')); return }
+    if (newPasscode !== confirmPasscode) { setPasscodeMsg(t('passcodeMismatch')); return }
+    await supabase.from('users').update({ passcode: newPasscode }).eq('id', currentUser!.id)
+    setCurrentUser(u => u ? { ...u, passcode: newPasscode } : u)
+    setPasscodeMsg(t('passcodeSet'))
+    setNewPasscode(''); setConfirmPasscode('')
+  }
 
   const todayMonth = (() => {
     const now = new Date()
@@ -106,12 +120,21 @@ export default function Dashboard() {
             </button>
           </div>
           {currentUser?.role === 'owner' && (
-            <button
-              onClick={() => setShowAddChild(true)}
-              className="flex items-center gap-1 text-sm bg-primary text-white font-semibold px-3 py-2 rounded-2xl hover:bg-primary/80 transition"
-            >
-              <Plus size={16} /> {t('addBunny')}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setShowPasscodeModal(true); setPasscodeMsg('') }}
+                className="flex items-center gap-1 text-sm bg-lavender text-app-text font-semibold px-3 py-2 rounded-2xl hover:bg-lavender/70 transition"
+                title={t('setPasscode')}
+              >
+                <Lock size={16} /> {currentUser.passcode ? t('changePasscode') : t('setPasscode')}
+              </button>
+              <button
+                onClick={() => setShowAddChild(true)}
+                className="flex items-center gap-1 text-sm bg-primary text-white font-semibold px-3 py-2 rounded-2xl hover:bg-primary/80 transition"
+              >
+                <Plus size={16} /> {t('addBunny')}
+              </button>
+            </div>
           )}
         </div>
 
@@ -169,6 +192,54 @@ export default function Dashboard() {
           onClose={() => setShowAddChild(false)}
           onSuccess={fetchData}
         />
+      )}
+
+      {showPasscodeModal && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl border-2 border-primary/30 p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-app-text">🔐 {currentUser?.passcode ? t('changePasscode') : t('setPasscode')}</h2>
+              <button onClick={() => setShowPasscodeModal(false)} className="text-app-text/50 hover:text-app-text"><X size={24} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-app-text mb-1">{t('passcodeLabel')}</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={newPasscode}
+                  onChange={e => setNewPasscode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••"
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text text-center text-2xl tracking-widest"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-app-text mb-1">{t('confirmPasscodeLabel')}</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={confirmPasscode}
+                  onChange={e => setConfirmPasscode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••"
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text text-center text-2xl tracking-widest"
+                />
+              </div>
+              {passcodeMsg && (
+                <p className={`text-sm text-center ${passcodeMsg.includes('🔐') ? 'text-green-600' : 'text-red-500'}`}>
+                  {passcodeMsg}
+                </p>
+              )}
+              <button
+                onClick={handleSavePasscode}
+                className="w-full py-3 rounded-2xl bg-primary text-white font-bold shadow hover:bg-primary/80 transition"
+              >
+                {t('setPasscode')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
