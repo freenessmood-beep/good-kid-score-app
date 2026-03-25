@@ -271,13 +271,21 @@ export default function TradesPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-app-text mb-1">{t('carrotsToSpend')}</label>
-                <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => setFormCarrots(Math.max(1, formCarrots - 1))}
-                    className="w-10 h-10 rounded-full bg-lavender text-app-text font-bold text-xl hover:bg-lavender/70">-</button>
-                  <span className="text-3xl font-bold text-app-text w-12 text-center">{formCarrots}</span>
-                  <button type="button" onClick={() => setFormCarrots(formCarrots + 1)}
-                    className="w-10 h-10 rounded-full bg-secondary text-app-text font-bold text-xl hover:bg-secondary/70">+</button>
-                </div>
+                {formReward ? (
+                  <div className="flex items-center gap-2 bg-lemon/50 border-2 border-lavender rounded-2xl px-4 py-3">
+                    <span className="text-3xl font-bold text-app-text">{formCarrots}</span>
+                    <span className="text-xl">🥕</span>
+                    <span className="text-app-text/50 text-sm ml-1">(fixed price)</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => setFormCarrots(Math.max(1, formCarrots - 1))}
+                      className="w-10 h-10 rounded-full bg-lavender text-app-text font-bold text-xl hover:bg-lavender/70">-</button>
+                    <span className="text-3xl font-bold text-app-text w-12 text-center">{formCarrots}</span>
+                    <button type="button" onClick={() => setFormCarrots(formCarrots + 1)}
+                      className="w-10 h-10 rounded-full bg-secondary text-app-text font-bold text-xl hover:bg-secondary/70">+</button>
+                  </div>
+                )}
               </div>
 
               <div>
