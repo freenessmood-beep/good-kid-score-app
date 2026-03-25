@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showAddChild, setShowAddChild] = useState(false)
   const [showPasscodeModal, setShowPasscodeModal] = useState(false)
+  const [currentPasscode, setCurrentPasscode] = useState('')
   const [newPasscode, setNewPasscode] = useState('')
   const [confirmPasscode, setConfirmPasscode] = useState('')
   const [passcodeMsg, setPasscodeMsg] = useState('')
@@ -59,12 +60,15 @@ export default function Dashboard() {
 
   const handleSavePasscode = async () => {
     setPasscodeMsg('')
+    if (currentUser?.passcode && currentPasscode !== currentUser.passcode) {
+      setPasscodeMsg(t('wrongPasscode')); return
+    }
     if (!/^\d{4}$/.test(newPasscode)) { setPasscodeMsg(t('passcodeInvalid')); return }
     if (newPasscode !== confirmPasscode) { setPasscodeMsg(t('passcodeMismatch')); return }
     await supabase.from('users').update({ passcode: newPasscode }).eq('id', currentUser!.id)
     setCurrentUser(u => u ? { ...u, passcode: newPasscode } : u)
     setPasscodeMsg(t('passcodeSet'))
-    setNewPasscode(''); setConfirmPasscode('')
+    setCurrentPasscode(''); setNewPasscode(''); setConfirmPasscode('')
   }
 
   const todayMonth = (() => {
@@ -199,9 +203,23 @@ export default function Dashboard() {
           <div className="bg-white rounded-3xl shadow-xl border-2 border-primary/30 p-6 w-full max-w-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-app-text">🔐 {currentUser?.passcode ? t('changePasscode') : t('setPasscode')}</h2>
-              <button onClick={() => setShowPasscodeModal(false)} className="text-app-text/50 hover:text-app-text"><X size={24} /></button>
+              <button onClick={() => { setShowPasscodeModal(false); setCurrentPasscode(''); setNewPasscode(''); setConfirmPasscode(''); setPasscodeMsg('') }} className="text-app-text/50 hover:text-app-text"><X size={24} /></button>
             </div>
             <div className="space-y-4">
+              {currentUser?.passcode && (
+                <div>
+                  <label className="block text-sm font-semibold text-app-text mb-1">{t('enterPasscode')}</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={currentPasscode}
+                    onChange={e => setCurrentPasscode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="••••"
+                    className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text text-center text-2xl tracking-widest"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-app-text mb-1">{t('passcodeLabel')}</label>
                 <input
