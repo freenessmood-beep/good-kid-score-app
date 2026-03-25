@@ -68,7 +68,7 @@ export default function RewardsPage() {
             <h1 className="text-3xl font-bold text-app-text">{t('rewardsTitle')}</h1>
             <p className="text-app-text/60 mt-1">{t('rewardsSubtitle')}</p>
             <div className="flex justify-center mt-4">
-              <ExportRewardsTable rewards={rewards} />
+              <ExportRewardsTable rewards={rewards} earningRules={earningRules} />
             </div>
           </div>
 

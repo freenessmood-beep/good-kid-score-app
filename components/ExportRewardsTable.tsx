@@ -2,16 +2,18 @@
 
 import { useRef } from 'react'
 import { Download } from 'lucide-react'
-import type { RewardItem } from '@/lib/types'
+import type { EarningRule, RewardItem } from '@/lib/types'
 
 interface ExportRewardsTableProps {
   rewards: RewardItem[]
+  earningRules?: EarningRule[]
 }
 
-export default function ExportRewardsTable({ rewards }: ExportRewardsTableProps) {
+export default function ExportRewardsTable({ rewards, earningRules = [] }: ExportRewardsTableProps) {
   const reportRef = useRef<HTMLDivElement>(null)
 
   const sorted = [...rewards].sort((a, b) => a.carrot_threshold - b.carrot_threshold)
+  const sortedRules = [...earningRules].sort((a, b) => a.carrots - b.carrots)
 
   const handleExport = async () => {
     if (!reportRef.current) return
@@ -49,7 +51,31 @@ export default function ExportRewardsTable({ rewards }: ExportRewardsTableProps)
           className="w-[500px] p-10 bg-background"
           style={{ fontFamily: "'Microsoft JhengHei', 'Baloo 2', cursive" }}
         >
-          <div className="text-center mb-6">
+          {/* How to Earn Carrots */}
+          {sortedRules.length > 0 && (
+            <div className="mb-8">
+              <div className="text-center mb-4">
+                <div className="text-4xl mb-2">🥕</div>
+                <h1 className="text-3xl font-bold text-app-text">How to Earn Carrots</h1>
+                <p className="text-app-text/60">Complete these activities to earn 🥕!</p>
+              </div>
+              <div className="space-y-3">
+                {sortedRules.map((rule, i) => (
+                  <div key={rule.id} className="flex items-center gap-4 bg-white rounded-2xl px-5 py-3 border-2 border-secondary/60">
+                    <span className="text-2xl font-bold text-app-text/30">{i + 1}</span>
+                    <div className="flex items-center gap-1 bg-secondary/40 rounded-xl px-3 py-1">
+                      <span className="text-xl font-bold text-app-text">+{rule.carrots}</span>
+                      <span>🥕</span>
+                    </div>
+                    <span className="flex-1 font-semibold text-app-text">{rule.description}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Rewards Table */}
+          <div className="text-center mb-4">
             <div className="text-4xl mb-2">🎁</div>
             <h1 className="text-3xl font-bold text-app-text">Rewards Table</h1>
             <p className="text-app-text/60">Earn carrots 🥕 to unlock these rewards!</p>
