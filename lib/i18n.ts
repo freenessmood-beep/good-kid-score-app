@@ -73,7 +73,7 @@ const translations = {
 
     // Add Child Modal
     addNewBunny: '🐰 Add New Bunny',
-    childName: "Child's Name",
+    childName: "Bunny's Name",
     childNamePlaceholder: 'e.g. Lily',
     bunnyColor: 'Bunny Color',
     addBunnyBtn: '🐰 Add Bunny',
@@ -98,7 +98,7 @@ const translations = {
     spent: 'Spent',
     available: 'Available',
     newTradeTitle: '🛒 New Trade',
-    selectChild: 'Select a child...',
+    selectChild: 'Select a bunny...',
     reward: 'Reward',
     customReward: 'Custom reward...',
     customRewardPlaceholder: 'Enter custom reward name',
@@ -219,7 +219,7 @@ const translations = {
 
     // Add Child Modal
     addNewBunny: '🐰 新增兔兔',
-    childName: '孩子的名字',
+    childName: '兔兔的名字',
     childNamePlaceholder: '例如：小明',
     bunnyColor: '兔兔顏色',
     addBunnyBtn: '🐰 新增兔兔',
@@ -244,7 +244,7 @@ const translations = {
     spent: '已兌換',
     available: '目前擁有',
     newTradeTitle: '🛒 新增兌換',
-    selectChild: '選擇孩子...',
+    selectChild: '選擇兔兔...',
     reward: '獎勵',
     customReward: '自訂獎勵...',
     customRewardPlaceholder: '輸入自訂獎勵名稱',
