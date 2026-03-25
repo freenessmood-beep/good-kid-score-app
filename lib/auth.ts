@@ -12,7 +12,8 @@ export async function getCurrentUser(): Promise<User | null> {
     .eq('id', user.id)
     .single()
 
-  return data
+  if (!data) return null
+  return { ...data, passcode: user.user_metadata?.passcode ?? data.passcode ?? null }
 }
 
 export async function signOut() {

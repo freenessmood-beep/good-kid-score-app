@@ -65,7 +65,8 @@ export default function Dashboard() {
     }
     if (!/^\d{4}$/.test(newPasscode)) { setPasscodeMsg(t('passcodeInvalid')); return }
     if (newPasscode !== confirmPasscode) { setPasscodeMsg(t('passcodeMismatch')); return }
-    await supabase.from('users').update({ passcode: newPasscode }).eq('id', currentUser!.id)
+    const { error } = await supabase.auth.updateUser({ data: { passcode: newPasscode } })
+    if (error) { setPasscodeMsg(error.message); return }
     setCurrentUser(u => u ? { ...u, passcode: newPasscode } : u)
     setPasscodeMsg(t('passcodeSet'))
     setCurrentPasscode(''); setNewPasscode(''); setConfirmPasscode('')
