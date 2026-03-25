@@ -25,8 +25,6 @@ export default function TradesPage() {
   const [showTradeModal, setShowTradeModal] = useState(false)
   const [formChild, setFormChild] = useState('')
   const [formReward, setFormReward] = useState('')
-  const [formCustomReward, setFormCustomReward] = useState('')
-  const [formCarrots, setFormCarrots] = useState(1)
   const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0])
   const [formNote, setFormNote] = useState('')
   const [formLoading, setFormLoading] = useState(false)
@@ -62,11 +60,6 @@ export default function TradesPage() {
 
   const handleRewardSelect = (rewardId: string) => {
     setFormReward(rewardId)
-    if (rewardId) {
-      const r = rewards.find(r => r.id === rewardId)
-      if (r) setFormCarrots(r.carrot_threshold)
-    }
-    setFormCustomReward('')
   }
 
   const getAvail = (childId: string) =>
@@ -75,16 +68,12 @@ export default function TradesPage() {
   const handleTradeSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError('')
-    if (!formChild) { setFormError('Please select a child.'); return }
+    if (!formChild) { setFormError('Please select a bunny.'); return }
+    if (!formReward) { setFormError('Please select a reward.'); return }
 
-    const rewardDesc = formReward
-      ? rewards.find(r => r.id === formReward)?.reward_description || ''
-      : formCustomReward
-
-    if (!rewardDesc) { setFormError('Please select or enter a reward.'); return }
-
+    const selectedReward = rewards.find(r => r.id === formReward)!
     const available = getAvail(formChild)
-    if (formCarrots > available) {
+    if (selectedReward.carrot_threshold > available) {
       setFormError(`Not enough carrots! ${children.find(c => c.id === formChild)?.name} only has 🥕 ${available} available.`)
       return
     }
@@ -92,9 +81,9 @@ export default function TradesPage() {
     setFormLoading(true)
     const { error } = await supabase.from('trades').insert({
       child_id: formChild,
-      reward_item_id: formReward || null,
-      reward_description: rewardDesc,
-      carrots_spent: formCarrots,
+      reward_item_id: formReward,
+      reward_description: selectedReward.reward_description,
+      carrots_spent: selectedReward.carrot_threshold,
       date: formDate,
       note: formNote || null,
       created_by: currentUser!.id
@@ -103,8 +92,7 @@ export default function TradesPage() {
     if (error) setFormError(error.message)
     else {
       setShowTradeModal(false)
-      setFormChild(''); setFormReward(''); setFormCustomReward('')
-      setFormCarrots(1); setFormNote('')
+      setFormChild(''); setFormReward(''); setFormNote('')
       fetchData()
     }
     setFormLoading(false)
@@ -255,38 +243,22 @@ export default function TradesPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-app-text mb-1">{t('reward')}</label>
-                <select value={formReward} onChange={e => handleRewardSelect(e.target.value)}
+                <select value={formReward} onChange={e => handleRewardSelect(e.target.value)} required
                   className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text">
-                  <option value="">{t('customReward')}</option>
+                  <option value="">{t('selectChild')}</option>
                   {rewards.map(r => (
                     <option key={r.id} value={r.id}>{r.reward_description} (🥕 {r.carrot_threshold})</option>
                   ))}
                 </select>
-                {!formReward && (
-                  <input type="text" value={formCustomReward} onChange={e => setFormCustomReward(e.target.value)}
-                    placeholder={t('customRewardPlaceholder')}
-                    className="w-full px-4 py-2 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text mt-2" />
-                )}
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-app-text mb-1">{t('carrotsToSpend')}</label>
-                {formReward ? (
-                  <div className="flex items-center gap-2 bg-lemon/50 border-2 border-lavender rounded-2xl px-4 py-3">
-                    <span className="text-3xl font-bold text-app-text">{formCarrots}</span>
-                    <span className="text-xl">🥕</span>
-                    <span className="text-app-text/50 text-sm ml-1">(fixed price)</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => setFormCarrots(Math.max(1, formCarrots - 1))}
-                      className="w-10 h-10 rounded-full bg-lavender text-app-text font-bold text-xl hover:bg-lavender/70">-</button>
-                    <span className="text-3xl font-bold text-app-text w-12 text-center">{formCarrots}</span>
-                    <button type="button" onClick={() => setFormCarrots(formCarrots + 1)}
-                      className="w-10 h-10 rounded-full bg-secondary text-app-text font-bold text-xl hover:bg-secondary/70">+</button>
-                  </div>
-                )}
-              </div>
+              {formReward && (
+                <div className="flex items-center gap-2 bg-lemon/50 border-2 border-lemon rounded-2xl px-4 py-3">
+                  <span className="text-app-text/60 text-sm">{t('carrotsToSpend')}:</span>
+                  <span className="text-2xl font-bold text-app-text">{rewards.find(r => r.id === formReward)?.carrot_threshold}</span>
+                  <span className="text-xl">🥕</span>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-semibold text-app-text mb-1">{t('date')}</label>
