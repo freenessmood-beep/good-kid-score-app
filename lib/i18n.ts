@@ -137,6 +137,18 @@ const translations = {
     noViewers: 'No viewer accounts yet',
     linkedTo: 'Linked to',
 
+    // Earning Rules
+    earningRulesTitle: 'How to Earn Carrots',
+    earningRulesSubtitle: 'Complete these activities to earn 🥕!',
+    addEarningRule: 'Add Rule',
+    noEarningRulesYet: 'No earning rules yet.',
+    noEarningRulesOwner: 'Add rules to guide your bunnies!',
+    noEarningRulesViewer: 'Ask a parent to add earning rules!',
+
+    // Rewards Menu (on trades page)
+    rewardsMenu: 'Rewards Menu',
+    rewardsMenuSubtitle: 'What can you get with your carrots?',
+
     // Export
     monthlyReport: 'Monthly Report',
     monthlySummary: 'Monthly Summary',
@@ -282,6 +294,18 @@ const translations = {
     linkViewerHint: '選填 — 讓孩子登入並管理自己的兔兔',
     noViewers: '目前沒有觀看者帳號',
     linkedTo: '連結至',
+
+    // Earning Rules
+    earningRulesTitle: '如何賺取紅蘿蔔',
+    earningRulesSubtitle: '完成這些活動來賺取 🥕！',
+    addEarningRule: '新增規則',
+    noEarningRulesYet: '尚未設定任何規則。',
+    noEarningRulesOwner: '新增規則來引導你的兔兔！',
+    noEarningRulesViewer: '請家長新增賺取規則！',
+
+    // Rewards Menu (on trades page)
+    rewardsMenu: '獎勵清單',
+    rewardsMenuSubtitle: '你可以用紅蘿蔔換什麼？',
 
     // Export
     monthlyReport: '月份報告',

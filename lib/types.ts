@@ -45,6 +45,14 @@ export interface Invitation {
   created_at: string
 }
 
+export interface EarningRule {
+  id: string
+  carrots: number
+  description: string
+  created_by: string
+  created_at: string
+}
+
 export interface Trade {
   id: string
   child_id: string

@@ -160,6 +160,25 @@ export default function TradesPage() {
           })}
         </div>
 
+        {/* Rewards Menu */}
+        {rewards.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-app-text mb-1">{t('rewardsMenu')}</h2>
+            <p className="text-app-text/50 text-sm mb-3">{t('rewardsMenuSubtitle')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {[...rewards].sort((a, b) => a.carrot_threshold - b.carrot_threshold).map(r => (
+                <div key={r.id} className="bg-white rounded-2xl border-2 border-lavender px-4 py-3 flex items-center gap-3">
+                  <div className="flex items-center gap-1 bg-lemon rounded-xl px-3 py-1 shrink-0">
+                    <span className="text-lg font-bold text-app-text">{r.carrot_threshold}</span>
+                    <span>🥕</span>
+                  </div>
+                  <span className="font-semibold text-app-text text-sm">{r.reward_description}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Trades list */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-app-text">{t('tradingRecords')}</h2>
