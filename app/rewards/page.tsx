@@ -72,12 +72,6 @@ export default function RewardsPage() {
 
         {/* Rewards Table */}
         <div>
-          <div className="text-center mb-6">
-            <div className="text-5xl mb-3">🎁</div>
-            <h1 className="text-3xl font-bold text-app-text">{t('rewardsTitle')}</h1>
-            <p className="text-app-text/60 mt-1">{t('rewardsSubtitle')}</p>
-          </div>
-
           <div className="bg-white rounded-3xl border-2 border-primary/20 p-6">
             <RewardsTable rewards={rewards} currentUser={currentUser} onRefresh={fetchData} />
           </div>
