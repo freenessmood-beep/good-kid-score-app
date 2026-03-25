@@ -49,13 +49,9 @@ export default function RewardsPage() {
       <Navbar currentUser={currentUser} />
 
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-8">
-        {/* Page header with export button */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-app-text">🎁 {t('rewardsTitle')}</h1>
-          <p className="text-app-text/60 mt-1 mb-4">{t('rewardsSubtitle')}</p>
-          <div className="flex justify-center">
-            <ExportRewardsTable rewards={rewards} earningRules={earningRules} />
-          </div>
+        {/* Export button */}
+        <div className="flex justify-center">
+          <ExportRewardsTable rewards={rewards} earningRules={earningRules} />
         </div>
 
         {/* How to Earn Carrots */}
@@ -72,6 +68,11 @@ export default function RewardsPage() {
 
         {/* Rewards Table */}
         <div>
+          <div className="text-center mb-6">
+            <div className="text-5xl mb-3">🎁</div>
+            <h1 className="text-3xl font-bold text-app-text">{t('rewardsTitle')}</h1>
+            <p className="text-app-text/60 mt-1">{t('rewardsSubtitle')}</p>
+          </div>
           <div className="bg-white rounded-3xl border-2 border-primary/20 p-6">
             <RewardsTable rewards={rewards} currentUser={currentUser} onRefresh={fetchData} />
           </div>
