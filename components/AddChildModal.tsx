@@ -19,6 +19,13 @@ interface AddChildModalProps {
   onSuccess: () => void
 }
 
+/** Generates a public_id from the child's name: alphanumeric chars + 4 random digits. */
+function makePublicId(name: string): string {
+  const base = name.replace(/[^a-zA-Z0-9]/g, '') || 'bunny'
+  const digits = String(Math.floor(1000 + Math.random() * 9000))
+  return base + digits
+}
+
 export default function AddChildModal({ currentUser, onClose, onSuccess }: AddChildModalProps) {
   const { t } = useLanguage()
   const [name, setName] = useState('')
@@ -28,14 +35,48 @@ export default function AddChildModal({ currentUser, onClose, onSuccess }: AddCh
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const trimmed = name.trim()
+    if (!trimmed) return
     setLoading(true)
     setError('')
     const supabase = createClient()
 
+    // Check name uniqueness within this owner's bunnies
+    const { data: existing } = await supabase
+      .from('children')
+      .select('id')
+      .eq('created_by', currentUser.id)
+      .ilike('name', trimmed)
+
+    if (existing && existing.length > 0) {
+      setError(`You already have a bunny named "${trimmed}". Please choose a different name.`)
+      setLoading(false)
+      return
+    }
+
+    // Generate a unique public_id (retry up to 5 times on collision)
+    let publicId = ''
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = makePublicId(trimmed)
+      const { data: clash } = await supabase
+        .from('children')
+        .select('id')
+        .eq('public_id', candidate)
+        .maybeSingle()
+      if (!clash) { publicId = candidate; break }
+    }
+
+    if (!publicId) {
+      setError('Could not generate a unique ID. Please try again.')
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.from('children').insert({
-      name,
+      name: trimmed,
       bunny_color: bunnyColor,
-      created_by: currentUser.id
+      public_id: publicId,
+      created_by: currentUser.id,
     })
 
     if (error) setError(error.message)
@@ -84,7 +125,7 @@ export default function AddChildModal({ currentUser, onClose, onSuccess }: AddCh
             </div>
           </div>
 
-{error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}

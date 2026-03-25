@@ -13,6 +13,7 @@ export interface Child {
   id: string
   name: string
   bunny_color: string
+  public_id: string
   created_by: string
   created_at: string
 }

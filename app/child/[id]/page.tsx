@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Plus, Trash2, Edit2, Check, X } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Edit2, Check, X, Copy, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
@@ -31,6 +31,7 @@ export default function ChildDetailPage() {
   const [editPoints, setEditPoints] = useState(1)
   const [editNote, setEditNote] = useState('')
   const [editDate, setEditDate] = useState('')
+  const [copiedId, setCopiedId] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -55,7 +56,7 @@ export default function ChildDetailPage() {
       supabase.from('trades').select('*').eq('child_id', id),
     ])
 
-    if (!childData) { router.push('/'); return }
+    if (!childData) { router.push('/dashboard'); return }
     setChild(childData)
     setAllEntries(entriesData || [])
     setRewards(rewardData || [])
@@ -99,7 +100,7 @@ export default function ChildDetailPage() {
   const handleDeleteBunny = async () => {
     setDeleting(true)
     await supabase.from('children').delete().eq('id', id)
-    router.push('/')
+    router.push('/dashboard')
   }
 
   const monthOptions = (() => {
@@ -129,7 +130,7 @@ export default function ChildDetailPage() {
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         {/* Back button */}
-        <Link href="/" className="inline-flex items-center gap-2 text-app-text/60 hover:text-app-text mb-6 font-semibold">
+        <Link href="/dashboard" className="inline-flex items-center gap-2 text-app-text/60 hover:text-app-text mb-6 font-semibold">
           <ArrowLeft size={18} /> {t('backToDashboard')}
         </Link>
 
@@ -144,6 +145,33 @@ export default function ChildDetailPage() {
               <span className="text-app-text/60">{t('carrots_this_month')}</span>
             </div>
             <p className="text-sm text-green-600 font-semibold mt-1">{t('available')}: 🥕 {availableCarrots}</p>
+            {/* Share ID */}
+            {child.public_id && (
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className="text-xs text-app-text/40">Bunny ID:</span>
+                <span className="font-mono text-sm font-bold text-app-text bg-lemon px-2 py-0.5 rounded-lg">{child.public_id}</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(child.public_id)
+                    setCopiedId(true)
+                    setTimeout(() => setCopiedId(false), 2000)
+                  }}
+                  className="p-1 rounded-lg hover:bg-lavender/30 text-app-text/50 hover:text-app-text transition"
+                  title="Copy ID"
+                >
+                  {copiedId ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+                <a
+                  href={`/bunny/${child.public_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 rounded-lg hover:bg-lavender/30 text-app-text/50 hover:text-app-text transition"
+                  title="Open public profile"
+                >
+                  <ExternalLink size={14} />
+                </a>
+              </div>
+            )}
           </div>
           <div className="flex flex-col gap-2 items-end">
             <div className="flex gap-2">
