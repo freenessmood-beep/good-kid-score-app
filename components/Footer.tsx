@@ -25,7 +25,7 @@ export default function Footer() {
       description: description.trim() || null,
     })
     setSubmitting(false)
-    if (dbError) { setError(t('issueSubmitError')); return }
+    if (dbError) { setError(dbError.message); return }
     setTitle('')
     setDescription('')
     setSubmitted(true)
