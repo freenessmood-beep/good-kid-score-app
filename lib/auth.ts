@@ -13,7 +13,11 @@ export async function getCurrentUser(): Promise<User | null> {
     .single()
 
   if (!data) return null
-  return { ...data, passcode: user.user_metadata?.passcode ?? data.passcode ?? null }
+  return {
+    ...data,
+    passcode: user.user_metadata?.passcode ?? data.passcode ?? null,
+    max_carrots_cap: user.user_metadata?.max_carrots_cap ?? data.max_carrots_cap ?? null,
+  }
 }
 
 export async function signOut() {

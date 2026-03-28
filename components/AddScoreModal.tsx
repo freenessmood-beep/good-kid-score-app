@@ -11,9 +11,10 @@ interface AddScoreModalProps {
   currentUser: User
   onClose: () => void
   onSuccess: () => void
+  currentMonthEarned?: number
 }
 
-export default function AddScoreModal({ child, currentUser, onClose, onSuccess }: AddScoreModalProps) {
+export default function AddScoreModal({ child, currentUser, onClose, onSuccess, currentMonthEarned = 0 }: AddScoreModalProps) {
   const { t } = useLanguage()
   const today = new Date().toISOString().split('T')[0]
   const [step, setStep] = useState<'form' | 'pin'>('form')
@@ -22,6 +23,9 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess }
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const cap = currentUser.max_carrots_cap
+  const wouldExceedCap = cap && cap > 0 && (currentMonthEarned + points) > cap
 
   // PIN step
   const [pin, setPin] = useState(['', '', '', ''])
@@ -129,6 +133,11 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess }
               />
             </div>
 
+            {wouldExceedCap && (
+              <p className="text-amber-500 text-xs">
+                ⚠️ {t('maxCapWarning')} 🥕{cap}. {t('available')}: 🥕{Math.max(0, cap! - currentMonthEarned)}
+              </p>
+            )}
             {!currentUser.passcode && (
               <p className="text-amber-500 text-xs">{t('noPasscodeWarning')}</p>
             )}

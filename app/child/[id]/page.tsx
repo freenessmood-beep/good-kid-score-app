@@ -297,6 +297,7 @@ export default function ChildDetailPage() {
           currentUser={currentUser}
           onClose={() => setShowAddScore(false)}
           onSuccess={fetchData}
+          currentMonthEarned={totalCarrots}
         />
       )}
 

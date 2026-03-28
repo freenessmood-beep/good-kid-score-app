@@ -7,6 +7,7 @@ export interface User {
   role: Role
   avatar_color: string
   passcode?: string
+  max_carrots_cap?: number
   created_at: string
 }
 
@@ -64,4 +65,5 @@ export interface Trade {
   note?: string
   created_by: string
   created_at: string
+  collab_group_id?: string
 }

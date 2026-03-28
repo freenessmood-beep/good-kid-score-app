@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, ChevronLeft, ChevronRight, Lock, X } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Lock, X, UserPlus, Gauge } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import Navbar from '@/components/Navbar'
@@ -29,6 +29,17 @@ export default function Dashboard() {
   const [newPasscode, setNewPasscode] = useState('')
   const [confirmPasscode, setConfirmPasscode] = useState('')
   const [passcodeMsg, setPasscodeMsg] = useState('')
+
+  // Max carrots cap
+  const [showCapModal, setShowCapModal] = useState(false)
+  const [capInput, setCapInput] = useState('')
+  const [capMsg, setCapMsg] = useState('')
+
+  // Co-admin invite
+  const [showCoAdminModal, setShowCoAdminModal] = useState(false)
+  const [coAdminEmail, setCoAdminEmail] = useState('')
+  const [coAdminMsg, setCoAdminMsg] = useState('')
+  const [coAdminLoading, setCoAdminLoading] = useState(false)
 
   const supabase = createClient()
 
@@ -58,6 +69,35 @@ export default function Dashboard() {
 
   useEffect(() => { fetchData() }, [])
 
+  const handleSaveMaxCap = async () => {
+    setCapMsg('')
+    const cap = parseInt(capInput)
+    if (isNaN(cap) || cap < 0) { setCapMsg('Please enter a valid number (0 = no limit).'); return }
+    const { error } = await supabase.auth.updateUser({ data: { max_carrots_cap: cap === 0 ? null : cap } })
+    if (error) { setCapMsg(error.message); return }
+    setCurrentUser(u => u ? { ...u, max_carrots_cap: cap === 0 ? undefined : cap } : u)
+    setCapMsg(cap === 0 ? t('maxCapRemoved') : t('maxCapSet'))
+    setCapInput('')
+  }
+
+  const handleInviteCoAdmin = async () => {
+    setCoAdminMsg('')
+    if (!coAdminEmail.trim()) { setCoAdminMsg('Please enter an email.'); return }
+    setCoAdminLoading(true)
+    const { data: targetUser } = await supabase
+      .from('users')
+      .select('id, email, role')
+      .eq('email', coAdminEmail.trim().toLowerCase())
+      .single()
+    if (!targetUser) { setCoAdminMsg(t('coAdminNotFound')); setCoAdminLoading(false); return }
+    if (targetUser.role === 'owner') { setCoAdminMsg(t('coAdminAlready')); setCoAdminLoading(false); return }
+    const { error } = await supabase.from('users').update({ role: 'owner' }).eq('id', targetUser.id)
+    if (error) { setCoAdminMsg(error.message); setCoAdminLoading(false); return }
+    setCoAdminMsg(t('coAdminSuccess'))
+    setCoAdminEmail('')
+    setCoAdminLoading(false)
+  }
+
   const handleSavePasscode = async () => {
     setPasscodeMsg('')
     if (currentUser?.passcode && currentPasscode !== currentUser.passcode) {
@@ -84,7 +124,7 @@ export default function Dashboard() {
     setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
 
-  const monthLabel = new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const monthLabel = new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
   const isCurrentMonth = selectedMonth === todayMonth
 
   if (loading) {
@@ -116,7 +156,7 @@ export default function Dashboard() {
               className="p-2 rounded-xl hover:bg-lavender/40 text-app-text transition">
               <ChevronLeft size={20} />
             </button>
-            <h2 className="text-xl font-bold text-app-text min-w-[180px] text-center">
+            <h2 className="text-xl font-bold text-app-text min-w-[110px] text-center">
               {monthLabel} {t('monthSummary')}
             </h2>
             <button onClick={() => changeMonth(1)} disabled={isCurrentMonth}
@@ -125,13 +165,27 @@ export default function Dashboard() {
             </button>
           </div>
           {currentUser?.role === 'owner' && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
               <button
                 onClick={() => { setShowPasscodeModal(true); setPasscodeMsg('') }}
                 className="flex items-center gap-1 text-sm bg-lavender text-app-text font-semibold px-3 py-2 rounded-2xl hover:bg-lavender/70 transition"
                 title={t('setPasscode')}
               >
                 <Lock size={16} /> {currentUser.passcode ? t('changePasscode') : t('setPasscode')}
+              </button>
+              <button
+                onClick={() => { setShowCapModal(true); setCapMsg(''); setCapInput(currentUser.max_carrots_cap ? String(currentUser.max_carrots_cap) : '') }}
+                className="flex items-center gap-1 text-sm bg-lemon text-app-text font-semibold px-3 py-2 rounded-2xl hover:bg-lemon/70 transition border-2 border-lavender"
+                title={t('setMaxCap')}
+              >
+                <Gauge size={16} /> {currentUser.max_carrots_cap ? `🥕${currentUser.max_carrots_cap}` : t('setMaxCap')}
+              </button>
+              <button
+                onClick={() => { setShowCoAdminModal(true); setCoAdminMsg(''); setCoAdminEmail('') }}
+                className="flex items-center gap-1 text-sm bg-secondary text-app-text font-semibold px-3 py-2 rounded-2xl hover:bg-secondary/70 transition"
+                title={t('inviteCoAdmin')}
+              >
+                <UserPlus size={16} />
               </button>
               <button
                 onClick={() => setShowAddChild(true)}
@@ -189,6 +243,9 @@ export default function Dashboard() {
           currentUser={currentUser}
           onClose={() => setSelectedChild(null)}
           onSuccess={fetchData}
+          currentMonthEarned={entries
+            .filter(e => e.child_id === selectedChild.id && e.date.startsWith(selectedMonth))
+            .reduce((s, e) => s + e.points, 0)}
         />
       )}
       {showAddChild && currentUser && (
@@ -197,6 +254,70 @@ export default function Dashboard() {
           onClose={() => setShowAddChild(false)}
           onSuccess={fetchData}
         />
+      )}
+
+      {/* Max Carrots Cap Modal */}
+      {showCapModal && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl border-2 border-primary/30 p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-app-text">🥕 {t('setMaxCap')}</h2>
+              <button onClick={() => { setShowCapModal(false); setCapMsg('') }} className="text-app-text/50 hover:text-app-text"><X size={24} /></button>
+            </div>
+            <div className="space-y-4">
+              <p className="text-sm text-app-text/60">{t('maxCapHint')}</p>
+              <div>
+                <label className="block text-sm font-semibold text-app-text mb-1">{t('maxCapLabel')}</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  value={capInput}
+                  onChange={e => setCapInput(e.target.value)}
+                  placeholder="e.g. 30"
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text text-center text-2xl font-bold"
+                />
+              </div>
+              {capMsg && (
+                <p className={`text-sm text-center ${capMsg.startsWith('✅') || capMsg.includes('🥕') ? 'text-green-600' : 'text-red-500'}`}>{capMsg}</p>
+              )}
+              <button onClick={handleSaveMaxCap} className="w-full py-3 rounded-2xl bg-primary text-white font-bold shadow hover:bg-primary/80 transition">
+                {t('setMaxCap')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Co-Admin Invite Modal */}
+      {showCoAdminModal && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl border-2 border-primary/30 p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-app-text">{t('inviteCoAdminTitle')}</h2>
+              <button onClick={() => { setShowCoAdminModal(false); setCoAdminMsg('') }} className="text-app-text/50 hover:text-app-text"><X size={24} /></button>
+            </div>
+            <div className="space-y-4">
+              <p className="text-sm text-app-text/60">{t('inviteCoAdminDesc')}</p>
+              <div>
+                <label className="block text-sm font-semibold text-app-text mb-1">{t('coAdminEmailLabel')}</label>
+                <input
+                  type="email"
+                  value={coAdminEmail}
+                  onChange={e => setCoAdminEmail(e.target.value)}
+                  placeholder={t('coAdminEmailPlaceholder')}
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text"
+                />
+              </div>
+              {coAdminMsg && (
+                <p className={`text-sm text-center ${coAdminMsg.startsWith('✅') ? 'text-green-600' : 'text-red-500'}`}>{coAdminMsg}</p>
+              )}
+              <button onClick={handleInviteCoAdmin} disabled={coAdminLoading} className="w-full py-3 rounded-2xl bg-secondary text-app-text font-bold shadow hover:bg-secondary/70 transition disabled:opacity-50">
+                {coAdminLoading ? '⏳' : t('coAdminPromote')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showPasscodeModal && (
