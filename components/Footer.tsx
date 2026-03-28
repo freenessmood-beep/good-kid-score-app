@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, Send } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { createClient } from '@/lib/supabase'
 
 export default function Footer() {
   const { t } = useLanguage()
@@ -10,17 +11,25 @@ export default function Footer() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
-    const subject = encodeURIComponent(`[Bunny Adventure] ${title}`)
-    const body = encodeURIComponent(description || '(no description provided)')
-    window.open(`mailto:freenessmood@gmail.com?subject=${subject}&body=${body}`)
+    setSubmitting(true)
+    setError('')
+    const supabase = createClient()
+    const { error: dbError } = await supabase.from('bug_reports').insert({
+      title: title.trim(),
+      description: description.trim() || null,
+    })
+    setSubmitting(false)
+    if (dbError) { setError(t('issueSubmitError')); return }
     setTitle('')
     setDescription('')
     setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 3000)
+    setTimeout(() => { setSubmitted(false); setOpen(false) }, 3000)
   }
 
   return (
@@ -51,12 +60,14 @@ export default function Footer() {
               rows={3}
               className="w-full px-3 py-2 rounded-xl border-2 border-lavender focus:border-primary outline-none text-sm text-app-text resize-none bg-lemon/20"
             />
+            {error && <p className="text-red-500 text-xs">{error}</p>}
             <button
               type="submit"
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-lavender text-app-text font-semibold text-sm hover:bg-lavender/70 transition"
+              disabled={submitting}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-lavender text-app-text font-semibold text-sm hover:bg-lavender/70 transition disabled:opacity-50"
             >
               <Send size={13} />
-              {submitted ? t('issueSubmitted') : t('submitIssue')}
+              {submitted ? t('issueSubmitted') : submitting ? '⏳' : t('submitIssue')}
             </button>
           </form>
         )}

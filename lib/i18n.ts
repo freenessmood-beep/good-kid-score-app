@@ -209,7 +209,8 @@ const translations = {
     issueTitle: 'Issue title',
     issueDescription: 'Describe the issue...',
     submitIssue: 'Submit',
-    issueSubmitted: '✅ Opening your email...',
+    issueSubmitted: '✅ Report submitted!',
+    issueSubmitError: 'Failed to submit. Please try again.',
   },
   zh: {
     // App
@@ -419,7 +420,8 @@ const translations = {
     issueTitle: '問題標題',
     issueDescription: '描述問題...',
     submitIssue: '提交',
-    issueSubmitted: '✅ 正在開啟您的郵件應用...',
+    issueSubmitted: '✅ 已提交回報！',
+    issueSubmitError: '提交失敗，請再試一次。',
   }
 }
 
