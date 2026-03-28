@@ -23,6 +23,7 @@ export default function ChildDetailPage() {
   const [allEntries, setAllEntries] = useState<ScoreEntry[]>([])
   const [rewards, setRewards] = useState<RewardItem[]>([])
   const [trades, setTrades] = useState<Trade[]>([])
+  const [userNames, setUserNames] = useState<Map<string, string>>(new Map())
   const [loading, setLoading] = useState(true)
   const [showAddScore, setShowAddScore] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -44,16 +45,21 @@ export default function ChildDetailPage() {
     if (!user) { router.push('/login'); return }
     setCurrentUser(user)
 
+    const effectiveOwnerId = user.main_admin_id || user.id
+
     const [
       { data: childData },
       { data: entriesData },
       { data: rewardData },
       { data: tradesData },
+      { data: adminsData },
     ] = await Promise.all([
       supabase.from('children').select('*').eq('id', id).single(),
       supabase.from('score_entries').select('*').eq('child_id', id).order('date', { ascending: false }),
       supabase.from('reward_items').select('*').order('carrot_threshold'),
       supabase.from('trades').select('*').eq('child_id', id),
+      supabase.from('users').select('id, name, main_admin_id')
+        .or(`id.eq.${effectiveOwnerId},main_admin_id.eq.${effectiveOwnerId}`),
     ])
 
     if (!childData) { router.push('/dashboard'); return }
@@ -61,6 +67,12 @@ export default function ChildDetailPage() {
     setAllEntries(entriesData || [])
     setRewards(rewardData || [])
     setTrades(tradesData || [])
+
+    const map = new Map<string, string>()
+    adminsData?.forEach(a => {
+      map.set(a.id, a.main_admin_id ? a.name : `${a.name} ★`)
+    })
+    setUserNames(map)
     setLoading(false)
   }
 
@@ -274,6 +286,11 @@ export default function ChildDetailPage() {
                         <span className="bg-lemon rounded-xl px-2 py-0.5 font-bold text-app-text text-sm">🥕 ×{entry.points}</span>
                       </div>
                       {entry.note && <p className="text-app-text/60 text-sm mt-0.5">{entry.note}</p>}
+                      {userNames.size > 1 && (
+                        <p className="text-app-text/35 text-xs mt-0.5">
+                          {t('addedBy')} {userNames.get(entry.created_by) ?? t('unknown')}
+                        </p>
+                      )}
                     </div>
                     {isOwner && (
                       <div className="flex gap-1">

@@ -50,8 +50,8 @@ export default function LandingPage() {
           </h2>
           <p className="text-app-text/50 text-sm text-center mb-5">
             {lang === 'en'
-              ? 'Enter the Bunny ID your parent shared with you'
-              : '輸入爸媽給你的兔兔 ID'}
+              ? 'Enter your Bunny ID'
+              : '輸入你的兔兔 ID'}
           </p>
           <form onSubmit={handleLookup} className="space-y-3">
             <input

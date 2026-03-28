@@ -24,6 +24,7 @@ export default function TradesPage() {
   const [rewards, setRewards] = useState<RewardItem[]>([])
   const [trades, setTrades] = useState<Trade[]>([])
   const [entries, setEntries] = useState<ScoreEntry[]>([])
+  const [userNames, setUserNames] = useState<Map<string, string>>(new Map())
   const [loading, setLoading] = useState(true)
 
   // Single trade form
@@ -51,22 +52,33 @@ export default function TradesPage() {
     if (!user) { router.push('/login'); return }
     setCurrentUser(user)
 
+    const effectiveOwnerId = user.main_admin_id || user.id
+
     const [
       { data: kidsData },
       { data: rewardsData },
       { data: tradesData },
       { data: entriesData },
+      { data: adminsData },
     ] = await Promise.all([
       supabase.from('children').select('*').order('name'),
       supabase.from('reward_items').select('*').order('carrot_threshold'),
       supabase.from('trades').select('*').order('date', { ascending: false }),
       supabase.from('score_entries').select('*'),
+      supabase.from('users').select('id, name, main_admin_id')
+        .or(`id.eq.${effectiveOwnerId},main_admin_id.eq.${effectiveOwnerId}`),
     ])
 
     setChildren(kidsData || [])
     setRewards(rewardsData || [])
     setTrades(tradesData || [])
     setEntries(entriesData || [])
+
+    const map = new Map<string, string>()
+    adminsData?.forEach(a => {
+      map.set(a.id, a.main_admin_id ? a.name : `${a.name} ★`)
+    })
+    setUserNames(map)
     setLoading(false)
   }
 
@@ -317,6 +329,7 @@ export default function TradesPage() {
                   <p className="text-app-text/40 text-xs mt-1">
                     {new Date(firstTrade.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     {firstTrade.note && ` — ${firstTrade.note}`}
+                    {userNames.size > 1 && ` · ${t('addedBy')} ${userNames.get(firstTrade.created_by) ?? t('unknown')}`}
                   </p>
                 </div>
               )
@@ -335,6 +348,11 @@ export default function TradesPage() {
                     </div>
                     <p className="text-app-text/80 text-sm mt-0.5">🎁 {trade.reward_description}</p>
                     {trade.note && <p className="text-app-text/50 text-xs mt-0.5">{trade.note}</p>}
+                    {userNames.size > 1 && (
+                      <p className="text-app-text/35 text-xs mt-0.5">
+                        {t('addedBy')} {userNames.get(trade.created_by) ?? t('unknown')}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="bg-red-50 text-red-500 font-bold px-3 py-1 rounded-xl text-sm">-🥕 {trade.carrots_spent}</span>
