@@ -88,11 +88,9 @@ export default function Dashboard() {
     if (!coAdminEmail.trim()) { setCoAdminMsg('Please enter an email.'); return }
     setCoAdminLoading(true)
 
-    const { data: targetUser } = await supabase
-      .from('users')
-      .select('id, email, role, main_admin_id')
-      .eq('email', coAdminEmail.trim().toLowerCase())
-      .single()
+    const { data: foundUsers } = await supabase
+      .rpc('find_user_by_email', { target_email: coAdminEmail.trim() })
+    const targetUser = foundUsers?.[0] ?? null
 
     if (!targetUser) { setCoAdminMsg(t('coAdminNotFound')); setCoAdminLoading(false); return }
     if (targetUser.id === currentUser?.id) { setCoAdminMsg(t('coAdminSelf')); setCoAdminLoading(false); return }

@@ -1,10 +1,10 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
-import type { Child, User } from '@/lib/types'
+import type { Child, EarningRule, User } from '@/lib/types'
 
 interface AddScoreModalProps {
   child: Child
@@ -19,11 +19,14 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
   const today = new Date().toISOString().split('T')[0]
   const [step, setStep] = useState<'form' | 'pin'>('form')
   const [date, setDate] = useState(today)
-  const [points, setPoints] = useState(1)
+  const [selectedRule, setSelectedRule] = useState<EarningRule | null>(null)
   const [note, setNote] = useState('')
+  const [rules, setRules] = useState<EarningRule[]>([])
+  const [rulesLoading, setRulesLoading] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const points = selectedRule?.carrots ?? 0
   const cap = currentUser.max_carrots_cap
   const wouldExceedCap = cap && cap > 0 && (currentMonthEarned + points) > cap
 
@@ -37,8 +40,29 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
     useRef<HTMLInputElement>(null),
   ]
 
+  useEffect(() => {
+    const fetchRules = async () => {
+      const supabase = createClient()
+      const effectiveOwnerId = currentUser.main_admin_id || currentUser.id
+      const { data } = await supabase
+        .from('earning_rules')
+        .select('*')
+        .eq('created_by', effectiveOwnerId)
+        .order('carrots')
+      setRules(data || [])
+      setRulesLoading(false)
+    }
+    fetchRules()
+  }, [currentUser.id, currentUser.main_admin_id])
+
+  const handleRuleSelect = (rule: EarningRule) => {
+    setSelectedRule(rule)
+    if (!note) setNote(rule.description)
+  }
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!selectedRule) return
     if (currentUser.passcode) {
       setStep('pin')
     } else {
@@ -112,26 +136,48 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
                 className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-semibold text-app-text mb-1">{t('carrotsLabel')}</label>
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => setPoints(Math.max(1, points - 1))}
-                  className="w-10 h-10 rounded-full bg-lavender text-app-text font-bold text-xl hover:bg-lavender/70 transition">-</button>
-                <span className="text-3xl font-bold text-app-text w-12 text-center">{points}</span>
-                <button type="button" onClick={() => setPoints(points + 1)}
-                  className="w-10 h-10 rounded-full bg-secondary text-app-text font-bold text-xl hover:bg-secondary/70 transition">+</button>
+              <label className="block text-sm font-semibold text-app-text mb-2">{t('selectEarningRule')}</label>
+              {rulesLoading ? (
+                <p className="text-app-text/40 text-sm py-4 text-center">⏳</p>
+              ) : rules.length === 0 ? (
+                <p className="text-amber-500 text-sm py-2">{t('noRulesForScore')}</p>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {rules.map(rule => (
+                    <button
+                      key={rule.id}
+                      type="button"
+                      onClick={() => handleRuleSelect(rule)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-left transition
+                        ${selectedRule?.id === rule.id
+                          ? 'border-primary bg-primary/10'
+                          : 'border-lavender hover:border-primary/50 bg-lemon/20'
+                        }`}
+                    >
+                      <span className="bg-secondary/50 rounded-xl px-2.5 py-1 font-bold text-app-text text-sm whitespace-nowrap">
+                        +{rule.carrots} 🥕
+                      </span>
+                      <span className="font-semibold text-app-text text-sm">{rule.description}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {selectedRule && (
+              <div>
+                <label className="block text-sm font-semibold text-app-text mb-1">{t('noteOptional')}</label>
+                <textarea
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  placeholder={t('notePlaceholder')}
+                  rows={2}
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text resize-none"
+                />
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-app-text mb-1">{t('noteOptional')}</label>
-              <textarea
-                value={note}
-                onChange={e => setNote(e.target.value)}
-                placeholder={t('notePlaceholder')}
-                rows={3}
-                className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text resize-none"
-              />
-            </div>
+            )}
 
             {wouldExceedCap && (
               <p className="text-amber-500 text-xs">
@@ -148,7 +194,7 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
                 className="flex-1 py-3 rounded-2xl border-2 border-lavender text-app-text font-semibold hover:bg-lavender/20 transition">
                 {t('cancel')}
               </button>
-              <button type="submit" disabled={loading}
+              <button type="submit" disabled={loading || !selectedRule || rules.length === 0}
                 className="flex-1 py-3 rounded-2xl bg-primary text-white font-bold shadow hover:bg-primary/80 transition disabled:opacity-50">
                 {loading ? '⏳' : t('save')}
               </button>

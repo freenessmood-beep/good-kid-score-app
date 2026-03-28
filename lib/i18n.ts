@@ -150,6 +150,8 @@ const translations = {
     passcodeInvalid: 'Passcode must be exactly 4 digits.',
     passcodeSet: '🔐 Passcode saved!',
     noPasscodeWarning: '⚠️ No passcode set — set one to protect adding carrots.',
+    selectEarningRule: 'Select what was done',
+    noRulesForScore: '⚠️ No earning rules set up yet. Add rules in the Rewards page first.',
 
     // Earning Rules
     earningRulesTitle: 'How to Earn Carrots',
@@ -363,6 +365,8 @@ const translations = {
     passcodeInvalid: '密碼必須為4位數字。',
     passcodeSet: '🔐 密碼已儲存！',
     noPasscodeWarning: '⚠️ 尚未設定密碼 — 請設定以保護新增紅蘿蔔功能。',
+    selectEarningRule: '選擇完成的項目',
+    noRulesForScore: '⚠️ 尚未設定任何規則，請先到獎勵頁面新增規則。',
 
     // Earning Rules
     earningRulesTitle: '如何賺取紅蘿蔔',
