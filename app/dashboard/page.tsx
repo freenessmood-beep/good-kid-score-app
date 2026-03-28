@@ -92,6 +92,17 @@ export default function Dashboard() {
     if (!coAdminEmail.trim()) { setCoAdminMsg('Please enter an email.'); return }
     setCoAdminLoading(true)
 
+    // Check co-admin limit (max 5 per main admin)
+    const { count: existingCount } = await supabase
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('main_admin_id', currentUser?.id)
+    if ((existingCount ?? 0) >= 5) {
+      setCoAdminMsg(t('coAdminLimitReached'))
+      setCoAdminLoading(false)
+      return
+    }
+
     const { data: foundUsers } = await supabase
       .rpc('find_user_by_email', { target_email: coAdminEmail.trim() })
     const targetUser = foundUsers?.[0] ?? null
@@ -117,6 +128,18 @@ export default function Dashboard() {
       .update({ role: 'owner', main_admin_id: currentUser?.id })
       .eq('id', targetUser.id)
     if (error) { setCoAdminMsg(error.message); setCoAdminLoading(false); return }
+
+    // Send notification email (non-blocking)
+    fetch('/api/notify-coadmin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        coAdminEmail: coAdminEmail.trim(),
+        coAdminName: targetUser.name || coAdminEmail.trim(),
+        mainAdminName: currentUser?.name || currentUser?.email,
+      }),
+    }).catch(() => {}) // fire and forget
+
     setCoAdminMsg(t('coAdminSuccess'))
     setCoAdminEmail('')
     setCoAdminLoading(false)

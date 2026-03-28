@@ -195,6 +195,7 @@ const translations = {
     coAdminAlready: 'This user is already a co-admin.',
     coAdminHasData: 'This user already has their own bunnies and cannot be made a co-admin.',
     coAdminSelf: 'You cannot assign yourself as co-admin.',
+    coAdminLimitReached: 'You can have a maximum of 5 co-admins.',
 
     // Collaborative trades
     collabTrade: 'Collaborative Trade',
@@ -410,6 +411,7 @@ const translations = {
     coAdminAlready: '此使用者已是共同管理者。',
     coAdminHasData: '此使用者已有自己的兔寶寶，無法設為共同管理者。',
     coAdminSelf: '無法將自己設為共同管理者。',
+    coAdminLimitReached: '最多只能新增 5 位共同管理者。',
 
     // Collaborative trades
     collabTrade: '合作兌換',
