@@ -11,10 +11,10 @@ interface AddScoreModalProps {
   currentUser: User
   onClose: () => void
   onSuccess: () => void
-  currentMonthEarned?: number
+  currentDayEarned?: number
 }
 
-export default function AddScoreModal({ child, currentUser, onClose, onSuccess, currentMonthEarned = 0 }: AddScoreModalProps) {
+export default function AddScoreModal({ child, currentUser, onClose, onSuccess, currentDayEarned = 0 }: AddScoreModalProps) {
   const { t } = useLanguage()
   const today = new Date().toISOString().split('T')[0]
   const [step, setStep] = useState<'form' | 'pin'>('form')
@@ -28,7 +28,7 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
 
   const points = selectedRule?.carrots ?? 0
   const cap = currentUser.max_carrots_cap
-  const wouldExceedCap = cap && cap > 0 && (currentMonthEarned + points) > cap
+  const wouldExceedCap = cap && cap > 0 && (currentDayEarned + points) > cap
 
   // PIN step
   const [pin, setPin] = useState(['', '', '', ''])
@@ -181,7 +181,7 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
 
             {wouldExceedCap && (
               <p className="text-amber-500 text-xs">
-                ⚠️ {t('maxCapWarning')} 🥕{cap}. {t('available')}: 🥕{Math.max(0, cap! - currentMonthEarned)}
+                ⚠️ {t('maxCapWarning')} 🥕{cap}. {t('available')}: 🥕{Math.max(0, cap! - currentDayEarned)}
               </p>
             )}
             {!currentUser.passcode && (

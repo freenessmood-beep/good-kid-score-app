@@ -177,11 +177,11 @@ const translations = {
 
     // Max carrots cap
     setMaxCap: 'Set Carrot Cap',
-    maxCapLabel: 'Monthly Carrot Cap',
-    maxCapHint: 'Max carrots a bunny can earn per month (0 = no limit)',
+    maxCapLabel: 'Daily Carrot Cap',
+    maxCapHint: 'Max carrots a bunny can earn per day (0 = no limit)',
     maxCapSet: '🥕 Cap saved!',
     maxCapRemoved: '✅ Cap removed!',
-    maxCapWarning: 'Adding this will exceed the monthly cap of',
+    maxCapWarning: 'Adding this will exceed the daily cap of',
 
     // Co-admin invite
     inviteCoAdmin: 'Invite Co-Admin',
@@ -392,11 +392,11 @@ const translations = {
 
     // Max carrots cap
     setMaxCap: '設定紅蘿蔔上限',
-    maxCapLabel: '每月紅蘿蔔上限',
-    maxCapHint: '每隻兔兔每月最多可賺取的紅蘿蔔數量（0 = 不限制）',
+    maxCapLabel: '每日紅蘿蔔上限',
+    maxCapHint: '每隻兔兔每天最多可賺取的紅蘿蔔數量（0 = 不限制）',
     maxCapSet: '🥕 上限已儲存！',
     maxCapRemoved: '✅ 已取消上限！',
-    maxCapWarning: '新增後將超過每月上限',
+    maxCapWarning: '新增後將超過每日上限',
 
     // Co-admin invite
     inviteCoAdmin: '邀請共同管理者',

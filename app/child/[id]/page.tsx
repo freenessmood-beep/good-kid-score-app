@@ -66,8 +66,10 @@ export default function ChildDetailPage() {
 
   useEffect(() => { fetchData() }, [id])
 
+  const today = new Date().toISOString().split('T')[0]
   const monthEntries = allEntries.filter(e => e.date.startsWith(currentMonth))
   const totalCarrots = monthEntries.reduce((sum, e) => sum + e.points, 0)
+  const todayCarrots = allEntries.filter(e => e.date === today).reduce((sum, e) => sum + e.points, 0)
   const isOwner = currentUser?.role === 'owner'
 
   const availableCarrots = getAvailableCarrots(id, allEntries, trades)
@@ -297,7 +299,7 @@ export default function ChildDetailPage() {
           currentUser={currentUser}
           onClose={() => setShowAddScore(false)}
           onSuccess={fetchData}
-          currentMonthEarned={totalCarrots}
+          currentDayEarned={todayCarrots}
         />
       )}
 

@@ -263,8 +263,8 @@ export default function Dashboard() {
           currentUser={currentUser}
           onClose={() => setSelectedChild(null)}
           onSuccess={fetchData}
-          currentMonthEarned={entries
-            .filter(e => e.child_id === selectedChild.id && e.date.startsWith(selectedMonth))
+          currentDayEarned={entries
+            .filter(e => e.child_id === selectedChild.id && e.date === new Date().toISOString().split('T')[0])
             .reduce((s, e) => s + e.points, 0)}
         />
       )}
