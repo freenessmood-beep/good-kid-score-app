@@ -41,11 +41,14 @@ export default function AddChildModal({ currentUser, onClose, onSuccess }: AddCh
     setError('')
     const supabase = createClient()
 
+    // Co-admins create children under their main admin's ownership
+    const effectiveOwnerId = currentUser.main_admin_id || currentUser.id
+
     // Check name uniqueness within this owner's bunnies
     const { data: existing } = await supabase
       .from('children')
       .select('id')
-      .eq('created_by', currentUser.id)
+      .eq('created_by', effectiveOwnerId)
       .ilike('name', trimmed)
 
     if (existing && existing.length > 0) {
@@ -76,7 +79,7 @@ export default function AddChildModal({ currentUser, onClose, onSuccess }: AddCh
       name: trimmed,
       bunny_color: bunnyColor,
       public_id: publicId,
-      created_by: currentUser.id,
+      created_by: effectiveOwnerId,
     })
 
     if (error) setError(error.message)

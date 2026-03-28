@@ -48,16 +48,19 @@ export default function Dashboard() {
     if (!user) { router.push('/login'); return }
     setCurrentUser(user)
 
+    // Co-admins share their main admin's data; main admins use their own ID
+    const effectiveOwnerId = user.main_admin_id || user.id
+
     const [
       { data: kids },
       { data: scoreData },
       { data: tradesData },
       { data: rewardsData },
     ] = await Promise.all([
-      supabase.from('children').select('*').order('created_at'),
+      supabase.from('children').select('*').eq('created_by', effectiveOwnerId).order('created_at'),
       supabase.from('score_entries').select('*'),
       supabase.from('trades').select('*'),
-      supabase.from('reward_items').select('*'),
+      supabase.from('reward_items').select('*').eq('created_by', effectiveOwnerId),
     ])
 
     setChildren(kids || [])
@@ -84,14 +87,33 @@ export default function Dashboard() {
     setCoAdminMsg('')
     if (!coAdminEmail.trim()) { setCoAdminMsg('Please enter an email.'); return }
     setCoAdminLoading(true)
+
     const { data: targetUser } = await supabase
       .from('users')
-      .select('id, email, role')
+      .select('id, email, role, main_admin_id')
       .eq('email', coAdminEmail.trim().toLowerCase())
       .single()
+
     if (!targetUser) { setCoAdminMsg(t('coAdminNotFound')); setCoAdminLoading(false); return }
-    if (targetUser.role === 'owner') { setCoAdminMsg(t('coAdminAlready')); setCoAdminLoading(false); return }
-    const { error } = await supabase.from('users').update({ role: 'owner' }).eq('id', targetUser.id)
+    if (targetUser.id === currentUser?.id) { setCoAdminMsg(t('coAdminSelf')); setCoAdminLoading(false); return }
+    if (targetUser.main_admin_id) { setCoAdminMsg(t('coAdminAlready')); setCoAdminLoading(false); return }
+
+    // Block if this account already has their own children (they're a main admin)
+    const { data: theirChildren } = await supabase
+      .from('children')
+      .select('id')
+      .eq('created_by', targetUser.id)
+      .limit(1)
+    if (theirChildren && theirChildren.length > 0) {
+      setCoAdminMsg(t('coAdminHasData'))
+      setCoAdminLoading(false)
+      return
+    }
+
+    const { error } = await supabase
+      .from('users')
+      .update({ role: 'owner', main_admin_id: currentUser?.id })
+      .eq('id', targetUser.id)
     if (error) { setCoAdminMsg(error.message); setCoAdminLoading(false); return }
     setCoAdminMsg(t('coAdminSuccess'))
     setCoAdminEmail('')

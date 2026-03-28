@@ -8,6 +8,7 @@ export interface User {
   avatar_color: string
   passcode?: string
   max_carrots_cap?: number
+  main_admin_id?: string | null
   created_at: string
 }
 

@@ -190,7 +190,9 @@ const translations = {
     coAdminPromote: '👑 Grant Co-Admin',
     coAdminSuccess: '✅ Co-admin access granted!',
     coAdminNotFound: 'No account found with this email.',
-    coAdminAlready: 'This user is already an admin.',
+    coAdminAlready: 'This user is already a co-admin.',
+    coAdminHasData: 'This user already has their own bunnies and cannot be made a co-admin.',
+    coAdminSelf: 'You cannot assign yourself as co-admin.',
 
     // Collaborative trades
     collabTrade: 'Collaborative Trade',
@@ -401,7 +403,9 @@ const translations = {
     coAdminPromote: '👑 授予共同管理者',
     coAdminSuccess: '✅ 共同管理者權限已授予！',
     coAdminNotFound: '找不到此電子郵件的帳號。',
-    coAdminAlready: '此使用者已是管理者。',
+    coAdminAlready: '此使用者已是共同管理者。',
+    coAdminHasData: '此使用者已有自己的兔寶寶，無法設為共同管理者。',
+    coAdminSelf: '無法將自己設為共同管理者。',
 
     // Collaborative trades
     collabTrade: '合作兌換',
