@@ -76,7 +76,11 @@ export default function Dashboard() {
     setCapMsg('')
     const cap = parseInt(capInput)
     if (isNaN(cap) || cap < 0) { setCapMsg('Please enter a valid number (0 = no limit).'); return }
-    const { error } = await supabase.auth.updateUser({ data: { max_carrots_cap: cap === 0 ? null : cap } })
+    const effectiveOwnerId = currentUser?.main_admin_id || currentUser?.id
+    const { error } = await supabase
+      .from('users')
+      .update({ max_carrots_cap: cap === 0 ? null : cap })
+      .eq('id', effectiveOwnerId)
     if (error) { setCapMsg(error.message); return }
     setCurrentUser(u => u ? { ...u, max_carrots_cap: cap === 0 ? undefined : cap } : u)
     setCapMsg(cap === 0 ? t('maxCapRemoved') : t('maxCapSet'))
@@ -125,7 +129,11 @@ export default function Dashboard() {
     }
     if (!/^\d{4}$/.test(newPasscode)) { setPasscodeMsg(t('passcodeInvalid')); return }
     if (newPasscode !== confirmPasscode) { setPasscodeMsg(t('passcodeMismatch')); return }
-    const { error } = await supabase.auth.updateUser({ data: { passcode: newPasscode } })
+    const effectiveOwnerId = currentUser?.main_admin_id || currentUser?.id
+    const { error } = await supabase
+      .from('users')
+      .update({ passcode: newPasscode })
+      .eq('id', effectiveOwnerId)
     if (error) { setPasscodeMsg(error.message); return }
     setCurrentUser(u => u ? { ...u, passcode: newPasscode } : u)
     setPasscodeMsg(t('passcodeSet'))

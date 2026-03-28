@@ -13,6 +13,23 @@ export async function getCurrentUser(): Promise<User | null> {
     .single()
 
   if (!data) return null
+
+  // Co-admins inherit shared settings (passcode, cap) from their main admin
+  if (data.main_admin_id) {
+    const { data: mainAdmin } = await supabase
+      .from('users')
+      .select('passcode, max_carrots_cap')
+      .eq('id', data.main_admin_id)
+      .single()
+    if (mainAdmin) {
+      return {
+        ...data,
+        passcode: mainAdmin.passcode ?? null,
+        max_carrots_cap: mainAdmin.max_carrots_cap ?? null,
+      }
+    }
+  }
+
   return {
     ...data,
     passcode: user.user_metadata?.passcode ?? data.passcode ?? null,
