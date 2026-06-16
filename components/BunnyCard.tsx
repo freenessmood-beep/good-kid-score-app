@@ -20,7 +20,6 @@ interface BunnyCardProps {
 export default function BunnyCard({ child, entries, trades, month, currentUser, onAddScore }: BunnyCardProps) {
   const { t } = useLanguage()
   const [copied, setCopied] = useState(false)
-  const monthEarned = entries.filter(e => e.date.startsWith(month)).reduce((sum, e) => sum + e.points, 0)
   const available = getAvailableCarrots(child.id, entries, trades)
   const isOwner = currentUser?.role === 'owner'
 
@@ -44,17 +43,10 @@ export default function BunnyCard({ child, entries, trades, month, currentUser, 
             </button>
           </div>
         )}
-        <div className="flex flex-col items-center gap-1 w-full">
-          <div className="flex items-center gap-2 bg-lemon rounded-2xl px-4 py-2 w-full justify-center">
-            <span className="text-xl">🥕</span>
-            <span className="text-xl font-bold text-app-text">{monthEarned}</span>
-            <span className="text-app-text/50 text-sm">{t('earnedThisMonth')}</span>
-          </div>
-          <div className="flex items-center gap-2 bg-secondary/40 rounded-2xl px-4 py-2 w-full justify-center">
-            <span className="text-xl">💰</span>
-            <span className="text-xl font-bold text-app-text">{available}</span>
-            <span className="text-app-text/50 text-sm">{t('availableTotal')}</span>
-          </div>
+        <div className="flex items-center gap-2 bg-secondary/40 rounded-2xl px-4 py-2 w-full justify-center">
+          <span className="text-xl">💰</span>
+          <span className="text-xl font-bold text-app-text">{available}</span>
+          <span className="text-app-text/50 text-sm">{t('availableTotal')}</span>
         </div>
       </Link>
 

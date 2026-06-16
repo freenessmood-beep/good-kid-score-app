@@ -8,12 +8,12 @@ import { getCurrentUser } from '@/lib/auth'
 import Navbar from '@/components/Navbar'
 import BunnySVG from '@/components/BunnySVG'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { getTotalEarned } from '@/lib/balance'
-import type { Child, ScoreEntry, User } from '@/lib/types'
+import { getAvailableCarrots } from '@/lib/balance'
+import type { Child, ScoreEntry, Trade, User } from '@/lib/types'
 
 interface RankedChild {
   child: Child
-  totalEarned: number
+  availableCarrots: number
   rank: number
 }
 
@@ -72,17 +72,19 @@ export default function LeaderboardPage() {
       if (!user) { router.push('/login'); return }
       setCurrentUser(user)
 
-      const [{ data: kids }, { data: entriesData }] = await Promise.all([
+      const [{ data: kids }, { data: entriesData }, { data: tradesData }] = await Promise.all([
         supabase.from('children').select('*').order('name'),
         supabase.from('score_entries').select('*'),
+        supabase.from('trades').select('*'),
       ])
 
       const children: Child[] = kids || []
       const entries: ScoreEntry[] = entriesData || []
+      const trades: Trade[] = tradesData || []
 
       const sorted = children
-        .map(child => ({ child, totalEarned: getTotalEarned(child.id, entries) }))
-        .sort((a, b) => b.totalEarned - a.totalEarned)
+        .map(child => ({ child, availableCarrots: getAvailableCarrots(child.id, entries, trades) }))
+        .sort((a, b) => b.availableCarrots - a.availableCarrots)
         .map((item, idx) => ({ ...item, rank: idx + 1 }))
 
       setRanked(sorted)
@@ -128,7 +130,7 @@ export default function LeaderboardPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {ranked.map(({ child, totalEarned, rank }) => {
+            {ranked.map(({ child, availableCarrots, rank }) => {
               const style = RANK_STYLES[rank] ?? { badge: `#${rank}`, bg: 'bg-white', border: 'border-lavender' }
               return (
                 <div
@@ -155,8 +157,8 @@ export default function LeaderboardPage() {
 
                   {/* Carrot count */}
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-app-text">🥕 {totalEarned}</p>
-                    <p className="text-xs text-app-text/40">{t('totalEarned')}</p>
+                    <p className="text-2xl font-bold text-app-text">🥕 {availableCarrots}</p>
+                    <p className="text-xs text-app-text/40">{t('availableTotal')}</p>
                   </div>
                 </div>
               )
@@ -179,7 +181,7 @@ export default function LeaderboardPage() {
           </div>
 
           <div className="space-y-3">
-            {ranked.map(({ child, totalEarned, rank }) => {
+            {ranked.map(({ child, availableCarrots, rank }) => {
               const style = RANK_STYLES[rank] ?? { badge: `#${rank}`, bg: 'bg-white', border: 'border-lavender' }
               return (
                 <div
@@ -199,8 +201,8 @@ export default function LeaderboardPage() {
                     <p className="text-app-text/50 text-sm">Rank #{rank}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-app-text">🥕 {totalEarned}</p>
-                    <p className="text-xs text-app-text/40">total earned</p>
+                    <p className="text-2xl font-bold text-app-text">🥕 {availableCarrots}</p>
+                    <p className="text-xs text-app-text/40">available</p>
                   </div>
                 </div>
               )
