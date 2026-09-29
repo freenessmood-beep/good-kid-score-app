@@ -28,3 +28,7 @@ next-env.d.ts
 # migration output (contains real child data)
 migrated-data.json
 backup.json
+
+.vercel
+.env*
+!.env.local.example
