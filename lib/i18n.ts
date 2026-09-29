@@ -218,6 +218,15 @@ const translations = {
     submitIssue: 'Submit',
     issueSubmitted: '✅ Report submitted!',
     issueSubmitError: 'Failed to submit. Please try again.',
+
+    // GitHub storage sync
+    syncSaving: 'Saving…',
+    syncSaved: 'Saved',
+    syncPending: 'Unsaved changes',
+    syncFailed: 'Save failed',
+    syncRetry: 'Retry',
+    syncOffline: 'Offline — changes are queued',
+    storageSetup: 'Storage is not set up yet.',
   },
   zh: {
     // App
@@ -436,6 +445,15 @@ const translations = {
     submitIssue: '提交',
     issueSubmitted: '✅ 已提交回報！',
     issueSubmitError: '提交失敗，請再試一次。',
+
+    // GitHub storage sync
+    syncSaving: '儲存中…',
+    syncSaved: '已儲存',
+    syncPending: '尚未儲存',
+    syncFailed: '儲存失敗',
+    syncRetry: '重試',
+    syncOffline: '離線中 — 變更已排入佇列',
+    storageSetup: '儲存空間尚未設定。',
   }
 }
 

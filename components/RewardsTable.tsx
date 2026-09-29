@@ -2,41 +2,36 @@
 
 import { useState } from 'react'
 import { Plus, Trash2, Edit2, Check, X } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
-import type { RewardItem, User } from '@/lib/types'
+import { useStore } from '@/lib/store'
+import type { RewardItem } from '@/lib/types'
 
 interface RewardsTableProps {
   rewards: RewardItem[]
-  currentUser: User | null
-  onRefresh: () => void
 }
 
-export default function RewardsTable({ rewards, currentUser, onRefresh }: RewardsTableProps) {
+export default function RewardsTable({ rewards }: RewardsTableProps) {
   const { t } = useLanguage()
-  const isOwner = currentUser?.role === 'owner'
+  const { insert, update, remove } = useStore()
+  const isOwner = true
   const [adding, setAdding] = useState(false)
   const [newThreshold, setNewThreshold] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [editId, setEditId] = useState<string | null>(null)
   const [editThreshold, setEditThreshold] = useState('')
   const [editDesc, setEditDesc] = useState('')
-  const supabase = createClient()
 
-  const handleAdd = async () => {
-    if (!newThreshold || !newDesc || !currentUser) return
-    await supabase.from('reward_items').insert({
+  const handleAdd = () => {
+    if (!newThreshold || !newDesc) return
+    insert('reward_items', {
       carrot_threshold: parseInt(newThreshold),
       reward_description: newDesc,
-      created_by: currentUser.id
     })
     setNewThreshold(''); setNewDesc(''); setAdding(false)
-    onRefresh()
   }
 
-  const handleDelete = async (id: string) => {
-    await supabase.from('reward_items').delete().eq('id', id)
-    onRefresh()
+  const handleDelete = (id: string) => {
+    remove('reward_items', id)
   }
 
   const handleEdit = (reward: RewardItem) => {
@@ -45,14 +40,13 @@ export default function RewardsTable({ rewards, currentUser, onRefresh }: Reward
     setEditDesc(reward.reward_description)
   }
 
-  const handleEditSave = async () => {
+  const handleEditSave = () => {
     if (!editId) return
-    await supabase.from('reward_items').update({
+    update('reward_items', editId, {
       carrot_threshold: parseInt(editThreshold),
-      reward_description: editDesc
-    }).eq('id', editId)
+      reward_description: editDesc,
+    })
     setEditId(null)
-    onRefresh()
   }
 
   const sorted = [...rewards].sort((a, b) => a.carrot_threshold - b.carrot_threshold)

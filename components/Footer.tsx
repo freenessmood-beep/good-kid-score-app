@@ -3,29 +3,23 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, Send } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { createClient } from '@/lib/supabase'
+import { useStore } from '@/lib/store'
 
 export default function Footer() {
   const { t } = useLanguage()
+  const { insert } = useStore()
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [submitted, setSubmitted] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
-    setSubmitting(true)
-    setError('')
-    const supabase = createClient()
-    const { error: dbError } = await supabase.from('bug_reports').insert({
+    insert('bug_reports', {
       title: title.trim(),
       description: description.trim() || null,
     })
-    setSubmitting(false)
-    if (dbError) { setError(dbError.message); return }
     setTitle('')
     setDescription('')
     setSubmitted(true)
@@ -60,14 +54,12 @@ export default function Footer() {
               rows={3}
               className="w-full px-3 py-2 rounded-xl border-2 border-lavender focus:border-primary outline-none text-sm text-app-text resize-none bg-lemon/20"
             />
-            {error && <p className="text-red-500 text-xs">{error}</p>}
             <button
               type="submit"
-              disabled={submitting}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-lavender text-app-text font-semibold text-sm hover:bg-lavender/70 transition disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-lavender text-app-text font-semibold text-sm hover:bg-lavender/70 transition"
             >
               <Send size={13} />
-              {submitted ? t('issueSubmitted') : submitting ? '⏳' : t('submitIssue')}
+              {submitted ? t('issueSubmitted') : t('submitIssue')}
             </button>
           </form>
         )}

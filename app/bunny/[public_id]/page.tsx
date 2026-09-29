@@ -1,59 +1,31 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
 import BunnySVG from '@/components/BunnySVG'
+import { useStore } from '@/lib/store'
 import { getAvailableCarrots } from '@/lib/balance'
-import type { Child, ScoreEntry, RewardItem, Trade } from '@/lib/types'
+import type { ScoreEntry } from '@/lib/types'
 
 export default function PublicBunnyPage() {
   const { public_id } = useParams<{ public_id: string }>()
-  const [child, setChild] = useState<Child | null>(null)
-  const [entries, setEntries] = useState<ScoreEntry[]>([])
-  const [trades, setTrades] = useState<Trade[]>([])
-  const [rewards, setRewards] = useState<RewardItem[]>([])
-  const [notFound, setNotFound] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const { doc, loading } = useStore()
+
+  const child = doc.children.find(c => c.public_id === public_id) ?? null
+  const entries: ScoreEntry[] = doc.score_entries
+    .filter(e => child && e.child_id === child.id)
+    .sort((a, b) => b.date.localeCompare(a.date))
+  const trades = doc.trades.filter(t => child && t.child_id === child.id)
+  const rewards = [...doc.reward_items].sort((a, b) => a.carrot_threshold - b.carrot_threshold)
+  const notFound = !loading && !child
 
   const todayMonth = (() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })()
   const [currentMonth, setCurrentMonth] = useState(todayMonth)
-
-  useEffect(() => {
-    const load = async () => {
-      const supabase = createClient()
-
-      const { data: childData } = await supabase
-        .from('children')
-        .select('*')
-        .eq('public_id', public_id)
-        .single()
-
-      if (!childData) { setNotFound(true); setLoading(false); return }
-      setChild(childData)
-
-      const [
-        { data: entriesData },
-        { data: tradesData },
-        { data: rewardsData },
-      ] = await Promise.all([
-        supabase.from('score_entries').select('*').eq('child_id', childData.id).order('date', { ascending: false }),
-        supabase.from('trades').select('*').eq('child_id', childData.id),
-        supabase.from('reward_items').select('*').eq('created_by', childData.created_by).order('carrot_threshold'),
-      ])
-
-      setEntries(entriesData || [])
-      setTrades(tradesData || [])
-      setRewards(rewardsData || [])
-      setLoading(false)
-    }
-    load()
-  }, [public_id])
 
   const changeMonth = (dir: number) => {
     const [y, m] = currentMonth.split('-').map(Number)

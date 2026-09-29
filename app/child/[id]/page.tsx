@@ -1,33 +1,25 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2, Edit2, Check, X, Copy, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
-import { getCurrentUser } from '@/lib/auth'
 import Navbar from '@/components/Navbar'
 import BunnySVG from '@/components/BunnySVG'
 import AddScoreModal from '@/components/AddScoreModal'
 import ExportReport from '@/components/ExportReport'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useStore } from '@/lib/store'
 import { getAvailableCarrots } from '@/lib/balance'
-import type { Child, ScoreEntry, RewardItem, User, Trade } from '@/lib/types'
+import type { ScoreEntry } from '@/lib/types'
 
 export default function ChildDetailPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
   const { t } = useLanguage()
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [child, setChild] = useState<Child | null>(null)
-  const [allEntries, setAllEntries] = useState<ScoreEntry[]>([])
-  const [rewards, setRewards] = useState<RewardItem[]>([])
-  const [trades, setTrades] = useState<Trade[]>([])
-  const [userNames, setUserNames] = useState<Map<string, string>>(new Map())
-  const [loading, setLoading] = useState(true)
+  const { doc, loading, update, remove, removeWhere } = useStore()
   const [showAddScore, setShowAddScore] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [editEntry, setEditEntry] = useState<ScoreEntry | null>(null)
   const [editPoints, setEditPoints] = useState(1)
   const [editNote, setEditNote] = useState('')
@@ -38,59 +30,25 @@ export default function ChildDetailPage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
 
-  const supabase = createClient()
-
-  const fetchData = async () => {
-    const user = await getCurrentUser()
-    if (!user) { router.push('/login'); return }
-    setCurrentUser(user)
-
-    const effectiveOwnerId = user.main_admin_id || user.id
-
-    const [
-      { data: childData },
-      { data: entriesData },
-      { data: rewardData },
-      { data: tradesData },
-      { data: adminsData },
-    ] = await Promise.all([
-      supabase.from('children').select('*').eq('id', id).single(),
-      supabase.from('score_entries').select('*').eq('child_id', id).order('date', { ascending: false }),
-      supabase.from('reward_items').select('*').order('carrot_threshold'),
-      supabase.from('trades').select('*').eq('child_id', id),
-      supabase.from('users').select('id, name, main_admin_id')
-        .or(`id.eq.${effectiveOwnerId},main_admin_id.eq.${effectiveOwnerId}`),
-    ])
-
-    if (!childData) { router.push('/dashboard'); return }
-    setChild(childData)
-    setAllEntries(entriesData || [])
-    setRewards(rewardData || [])
-    setTrades(tradesData || [])
-
-    const map = new Map<string, string>()
-    adminsData?.forEach(a => {
-      map.set(a.id, a.main_admin_id ? a.name : `${a.name} ★`)
-    })
-    setUserNames(map)
-    setLoading(false)
-  }
-
-  useEffect(() => { fetchData() }, [id])
+  const child = doc.children.find(c => c.id === id) ?? null
+  const allEntries: ScoreEntry[] = doc.score_entries
+    .filter(e => e.child_id === id)
+    .sort((a, b) => b.date.localeCompare(a.date))
+  const rewards = [...doc.reward_items].sort((a, b) => a.carrot_threshold - b.carrot_threshold)
+  const trades = doc.trades.filter(t => t.child_id === id)
 
   const today = new Date().toISOString().split('T')[0]
   const monthEntries = allEntries.filter(e => e.date.startsWith(currentMonth))
   const totalCarrots = monthEntries.reduce((sum, e) => sum + e.points, 0)
   const todayCarrots = allEntries.filter(e => e.date === today).reduce((sum, e) => sum + e.points, 0)
-  const isOwner = currentUser?.role === 'owner'
+  const isOwner = true
 
   const availableCarrots = getAvailableCarrots(id, allEntries, trades)
 
   const earnedRewards = rewards.filter(r => r.carrot_threshold <= totalCarrots)
 
-  const handleDeleteEntry = async (entryId: string) => {
-    await supabase.from('score_entries').delete().eq('id', entryId)
-    fetchData()
+  const handleDeleteEntry = (entryId: string) => {
+    remove('score_entries', entryId)
   }
 
   const handleEditStart = (entry: ScoreEntry) => {
@@ -100,20 +58,21 @@ export default function ChildDetailPage() {
     setEditDate(entry.date)
   }
 
-  const handleEditSave = async () => {
+  const handleEditSave = () => {
     if (!editEntry) return
-    await supabase.from('score_entries').update({
+    update('score_entries', editEntry.id, {
       points: editPoints,
       note: editNote || null,
-      date: editDate
-    }).eq('id', editEntry.id)
+      date: editDate,
+    })
     setEditEntry(null)
-    fetchData()
   }
 
-  const handleDeleteBunny = async () => {
-    setDeleting(true)
-    await supabase.from('children').delete().eq('id', id)
+  const handleDeleteBunny = () => {
+    // Remove the bunny and everything attached to it.
+    remove('children', id)
+    removeWhere('score_entries', 'child_id', id)
+    removeWhere('trades', 'child_id', id)
     router.push('/dashboard')
   }
 
@@ -140,7 +99,7 @@ export default function ChildDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar currentUser={currentUser} />
+      <Navbar />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         {/* Back button */}
@@ -286,11 +245,6 @@ export default function ChildDetailPage() {
                         <span className="bg-lemon rounded-xl px-2 py-0.5 font-bold text-app-text text-sm">🥕 ×{entry.points}</span>
                       </div>
                       {entry.note && <p className="text-app-text/60 text-sm mt-0.5">{entry.note}</p>}
-                      {userNames.size > 1 && (
-                        <p className="text-app-text/35 text-xs mt-0.5">
-                          {t('addedBy')} {userNames.get(entry.created_by) ?? t('unknown')}
-                        </p>
-                      )}
                     </div>
                     {isOwner && (
                       <div className="flex gap-1">
@@ -310,12 +264,10 @@ export default function ChildDetailPage() {
         </div>
       </main>
 
-      {showAddScore && currentUser && (
+      {showAddScore && (
         <AddScoreModal
           child={child}
-          currentUser={currentUser}
           onClose={() => setShowAddScore(false)}
-          onSuccess={fetchData}
           currentDayEarned={todayCarrots}
         />
       )}
@@ -336,10 +288,9 @@ export default function ChildDetailPage() {
               </button>
               <button
                 onClick={handleDeleteBunny}
-                disabled={deleting}
-                className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold shadow hover:bg-red-600 transition disabled:opacity-50"
+                className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold shadow hover:bg-red-600 transition"
               >
-                {deleting ? t('deleting') : t('deleteBunny')}
+                {t('deleteBunny')}
               </button>
             </div>
           </div>

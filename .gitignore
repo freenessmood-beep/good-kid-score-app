@@ -24,3 +24,7 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# migration output (contains real child data)
+migrated-data.json
+backup.json

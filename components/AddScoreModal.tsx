@@ -1,33 +1,30 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { X } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
-import type { Child, EarningRule, User } from '@/lib/types'
+import { useStore } from '@/lib/store'
+import type { Child, EarningRule } from '@/lib/types'
 
 interface AddScoreModalProps {
   child: Child
-  currentUser: User
   onClose: () => void
-  onSuccess: () => void
   currentDayEarned?: number
 }
 
-export default function AddScoreModal({ child, currentUser, onClose, onSuccess, currentDayEarned = 0 }: AddScoreModalProps) {
+export default function AddScoreModal({ child, onClose, currentDayEarned = 0 }: AddScoreModalProps) {
   const { t } = useLanguage()
+  const { doc, insert } = useStore()
+  const { passcode, max_carrots_cap } = doc.settings
   const today = new Date().toISOString().split('T')[0]
   const [step, setStep] = useState<'form' | 'pin'>('form')
   const [date, setDate] = useState(today)
   const [selectedRule, setSelectedRule] = useState<EarningRule | null>(null)
   const [note, setNote] = useState('')
-  const [rules, setRules] = useState<EarningRule[]>([])
-  const [rulesLoading, setRulesLoading] = useState(true)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const rules = [...doc.earning_rules].sort((a, b) => a.carrots - b.carrots)
 
   const points = selectedRule?.carrots ?? 0
-  const cap = currentUser.max_carrots_cap
+  const cap = max_carrots_cap
   const wouldExceedCap = cap && cap > 0 && (currentDayEarned + points) > cap
 
   // PIN step
@@ -40,21 +37,6 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
     useRef<HTMLInputElement>(null),
   ]
 
-  useEffect(() => {
-    const fetchRules = async () => {
-      const supabase = createClient()
-      const effectiveOwnerId = currentUser.main_admin_id || currentUser.id
-      const { data } = await supabase
-        .from('earning_rules')
-        .select('*')
-        .eq('created_by', effectiveOwnerId)
-        .order('carrots')
-      setRules(data || [])
-      setRulesLoading(false)
-    }
-    fetchRules()
-  }, [currentUser.id, currentUser.main_admin_id])
-
   const handleRuleSelect = (rule: EarningRule) => {
     setSelectedRule(rule)
     if (!note) setNote(rule.description)
@@ -63,27 +45,21 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedRule) return
-    if (currentUser.passcode) {
+    if (passcode) {
       setStep('pin')
     } else {
       submitScore()
     }
   }
 
-  const submitScore = async () => {
-    setLoading(true)
-    setError('')
-    const supabase = createClient()
-    const { error } = await supabase.from('score_entries').insert({
+  const submitScore = () => {
+    insert('score_entries', {
       child_id: child.id,
       date,
       points,
       note: note || null,
-      created_by: currentUser.id
     })
-    if (error) setError(error.message)
-    else { onSuccess(); onClose() }
-    setLoading(false)
+    onClose()
   }
 
   const handlePinInput = (i: number, val: string) => {
@@ -105,7 +81,7 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
     e.preventDefault()
     const entered = pin.join('')
     if (entered.length < 4) { setPinError(t('passcodeInvalid')); return }
-    if (entered !== currentUser.passcode) {
+    if (entered !== passcode) {
       setPinError(t('wrongPasscode'))
       setPin(['', '', '', ''])
       pinRefs[0].current?.focus()
@@ -139,9 +115,7 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
 
             <div>
               <label className="block text-sm font-semibold text-app-text mb-2">{t('selectEarningRule')}</label>
-              {rulesLoading ? (
-                <p className="text-app-text/40 text-sm py-4 text-center">⏳</p>
-              ) : rules.length === 0 ? (
+              {rules.length === 0 ? (
                 <p className="text-amber-500 text-sm py-2">{t('noRulesForScore')}</p>
               ) : (
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -184,19 +158,18 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
                 ⚠️ {t('maxCapWarning')} 🥕{cap}. {t('available')}: 🥕{Math.max(0, cap! - currentDayEarned)}
               </p>
             )}
-            {!currentUser.passcode && (
+            {!passcode && (
               <p className="text-amber-500 text-xs">{t('noPasscodeWarning')}</p>
             )}
-            {error && <p className="text-red-500 text-sm">{error}</p>}
 
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={onClose}
                 className="flex-1 py-3 rounded-2xl border-2 border-lavender text-app-text font-semibold hover:bg-lavender/20 transition">
                 {t('cancel')}
               </button>
-              <button type="submit" disabled={loading || !selectedRule || rules.length === 0}
+              <button type="submit" disabled={!selectedRule || rules.length === 0}
                 className="flex-1 py-3 rounded-2xl bg-primary text-white font-bold shadow hover:bg-primary/80 transition disabled:opacity-50">
-                {loading ? '⏳' : t('save')}
+                {t('save')}
               </button>
             </div>
           </form>
@@ -232,9 +205,9 @@ export default function AddScoreModal({ child, currentUser, onClose, onSuccess, 
                 className="flex-1 py-3 rounded-2xl border-2 border-lavender text-app-text font-semibold hover:bg-lavender/20 transition">
                 {t('cancel')}
               </button>
-              <button type="submit" disabled={loading}
+              <button type="submit"
                 className="flex-1 py-3 rounded-2xl bg-primary text-white font-bold shadow hover:bg-primary/80 transition disabled:opacity-50">
-                {loading ? '⏳' : t('save')}
+                {t('save')}
               </button>
             </div>
           </form>

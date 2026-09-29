@@ -2,41 +2,36 @@
 
 import { useState } from 'react'
 import { Plus, Trash2, Edit2, Check, X } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
 import { useLanguage } from '@/contexts/LanguageContext'
-import type { EarningRule, User } from '@/lib/types'
+import { useStore } from '@/lib/store'
+import type { EarningRule } from '@/lib/types'
 
 interface EarningRulesTableProps {
   rules: EarningRule[]
-  currentUser: User | null
-  onRefresh: () => void
 }
 
-export default function EarningRulesTable({ rules, currentUser, onRefresh }: EarningRulesTableProps) {
+export default function EarningRulesTable({ rules }: EarningRulesTableProps) {
   const { t } = useLanguage()
-  const isOwner = currentUser?.role === 'owner'
+  const { insert, update, remove } = useStore()
+  const isOwner = true
   const [adding, setAdding] = useState(false)
   const [newCarrots, setNewCarrots] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [editId, setEditId] = useState<string | null>(null)
   const [editCarrots, setEditCarrots] = useState('')
   const [editDesc, setEditDesc] = useState('')
-  const supabase = createClient()
 
-  const handleAdd = async () => {
-    if (!newCarrots || !newDesc || !currentUser) return
-    await supabase.from('earning_rules').insert({
+  const handleAdd = () => {
+    if (!newCarrots || !newDesc) return
+    insert('earning_rules', {
       carrots: parseInt(newCarrots),
       description: newDesc,
-      created_by: currentUser.id
     })
     setNewCarrots(''); setNewDesc(''); setAdding(false)
-    onRefresh()
   }
 
-  const handleDelete = async (id: string) => {
-    await supabase.from('earning_rules').delete().eq('id', id)
-    onRefresh()
+  const handleDelete = (id: string) => {
+    remove('earning_rules', id)
   }
 
   const handleEdit = (rule: EarningRule) => {
@@ -45,14 +40,13 @@ export default function EarningRulesTable({ rules, currentUser, onRefresh }: Ear
     setEditDesc(rule.description)
   }
 
-  const handleEditSave = async () => {
+  const handleEditSave = () => {
     if (!editId) return
-    await supabase.from('earning_rules').update({
+    update('earning_rules', editId, {
       carrots: parseInt(editCarrots),
-      description: editDesc
-    }).eq('id', editId)
+      description: editDesc,
+    })
     setEditId(null)
-    onRefresh()
   }
 
   const sorted = [...rules].sort((a, b) => a.carrots - b.carrots)

@@ -1,31 +1,25 @@
 'use client'
 
-// NOTE: Collaborative trades require this SQL migration in Supabase:
-//   ALTER TABLE trades ADD COLUMN IF NOT EXISTS collab_group_id uuid;
-
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Plus, Trash2, X, Users } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
-import { getCurrentUser } from '@/lib/auth'
 import Navbar from '@/components/Navbar'
 import BunnySVG from '@/components/BunnySVG'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useStore } from '@/lib/store'
+import { newId } from '@/lib/doc'
 import { getAvailableCarrots } from '@/lib/balance'
-import type { Child, RewardItem, Trade, ScoreEntry, User } from '@/lib/types'
+import type { Trade } from '@/lib/types'
 
 interface CollabItem { childId: string; contribution: number }
 
 export default function TradesPage() {
-  const router = useRouter()
   const { t } = useLanguage()
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [children, setChildren] = useState<Child[]>([])
-  const [rewards, setRewards] = useState<RewardItem[]>([])
-  const [trades, setTrades] = useState<Trade[]>([])
-  const [entries, setEntries] = useState<ScoreEntry[]>([])
-  const [userNames, setUserNames] = useState<Map<string, string>>(new Map())
-  const [loading, setLoading] = useState(true)
+  const { doc, loading, insert, insertMany, remove, removeWhere } = useStore()
+
+  const children = [...doc.children].sort((a, b) => a.name.localeCompare(b.name))
+  const rewards = [...doc.reward_items].sort((a, b) => a.carrot_threshold - b.carrot_threshold)
+  const trades = [...doc.trades].sort((a, b) => b.date.localeCompare(a.date))
+  const entries = doc.score_entries
 
   // Single trade form
   const [showTradeModal, setShowTradeModal] = useState(false)
@@ -33,7 +27,6 @@ export default function TradesPage() {
   const [formReward, setFormReward] = useState('')
   const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0])
   const [formNote, setFormNote] = useState('')
-  const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState('')
 
   // Collaborative trade form
@@ -42,53 +35,14 @@ export default function TradesPage() {
   const [collabItems, setCollabItems] = useState<CollabItem[]>([])
   const [collabDate, setCollabDate] = useState(new Date().toISOString().split('T')[0])
   const [collabNote, setCollabNote] = useState('')
-  const [collabLoading, setCollabLoading] = useState(false)
   const [collabError, setCollabError] = useState('')
 
-  const supabase = createClient()
-
-  const fetchData = async () => {
-    const user = await getCurrentUser()
-    if (!user) { router.push('/login'); return }
-    setCurrentUser(user)
-
-    const effectiveOwnerId = user.main_admin_id || user.id
-
-    const [
-      { data: kidsData },
-      { data: rewardsData },
-      { data: tradesData },
-      { data: entriesData },
-      { data: adminsData },
-    ] = await Promise.all([
-      supabase.from('children').select('*').order('name'),
-      supabase.from('reward_items').select('*').order('carrot_threshold'),
-      supabase.from('trades').select('*').order('date', { ascending: false }),
-      supabase.from('score_entries').select('*'),
-      supabase.from('users').select('id, name, main_admin_id')
-        .or(`id.eq.${effectiveOwnerId},main_admin_id.eq.${effectiveOwnerId}`),
-    ])
-
-    setChildren(kidsData || [])
-    setRewards(rewardsData || [])
-    setTrades(tradesData || [])
-    setEntries(entriesData || [])
-
-    const map = new Map<string, string>()
-    adminsData?.forEach(a => {
-      map.set(a.id, a.main_admin_id ? a.name : `${a.name} ★`)
-    })
-    setUserNames(map)
-    setLoading(false)
-  }
-
-  useEffect(() => { fetchData() }, [])
 
   const getAvail = (childId: string) =>
     getAvailableCarrots(childId, entries, trades)
 
   // ---------- Single trade ----------
-  const handleTradeSubmit = async (e: React.FormEvent) => {
+  const handleTradeSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setFormError('')
     if (!formChild) { setFormError('Please select a bunny.'); return }
@@ -101,24 +55,16 @@ export default function TradesPage() {
       return
     }
 
-    setFormLoading(true)
-    const { error } = await supabase.from('trades').insert({
+    insert('trades', {
       child_id: formChild,
       reward_item_id: formReward,
       reward_description: selectedReward.reward_description,
       carrots_spent: selectedReward.carrot_threshold,
       date: formDate,
       note: formNote || null,
-      created_by: currentUser!.id
     })
-
-    if (error) setFormError(error.message)
-    else {
-      setShowTradeModal(false)
-      setFormChild(''); setFormReward(''); setFormNote('')
-      fetchData()
-    }
-    setFormLoading(false)
+    setShowTradeModal(false)
+    setFormChild(''); setFormReward(''); setFormNote('')
   }
 
   // ---------- Collaborative trade ----------
@@ -141,7 +87,7 @@ export default function TradesPage() {
     setCollabItems(prev => prev.filter((_, i) => i !== idx))
   }
 
-  const handleCollabSubmit = async (e: React.FormEvent) => {
+  const handleCollabSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setCollabError('')
     if (!collabReward) { setCollabError('Please select a reward.'); return }
@@ -157,39 +103,30 @@ export default function TradesPage() {
       }
     }
 
-    setCollabLoading(true)
-    const groupId = crypto.randomUUID()
-    const insertRows = collabItems.map(item => ({
+    const groupId = newId()
+    insertMany('trades', collabItems.map(item => ({
       child_id: item.childId,
       reward_item_id: collabReward,
       reward_description: collabRewardObj!.reward_description,
       carrots_spent: item.contribution,
       date: collabDate,
       note: collabNote || null,
-      created_by: currentUser!.id,
       collab_group_id: groupId,
-    }))
-
-    const { error } = await supabase.from('trades').insert(insertRows)
-    if (error) { setCollabError(error.message); setCollabLoading(false); return }
+    })))
 
     setShowCollabModal(false)
     setCollabReward(''); setCollabItems([]); setCollabNote('')
-    fetchData()
-    setCollabLoading(false)
   }
 
-  const handleDeleteTrade = async (id: string) => {
-    await supabase.from('trades').delete().eq('id', id)
-    fetchData()
+  const handleDeleteTrade = (id: string) => {
+    remove('trades', id)
   }
 
-  const handleDeleteCollabGroup = async (groupId: string) => {
-    await supabase.from('trades').delete().eq('collab_group_id', groupId)
-    fetchData()
+  const handleDeleteCollabGroup = (groupId: string) => {
+    removeWhere('trades', 'collab_group_id', groupId)
   }
 
-  const isOwner = currentUser?.role === 'owner'
+  const isOwner = true
 
   // Group collaborative trades for display
   const collabGroups = new Map<string, Trade[]>()
@@ -213,7 +150,7 @@ export default function TradesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar currentUser={currentUser} />
+      <Navbar />
 
       <main className="max-w-3xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
@@ -329,7 +266,6 @@ export default function TradesPage() {
                   <p className="text-app-text/40 text-xs mt-1">
                     {new Date(firstTrade.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     {firstTrade.note && ` — ${firstTrade.note}`}
-                    {userNames.size > 1 && ` · ${t('addedBy')} ${userNames.get(firstTrade.created_by) ?? t('unknown')}`}
                   </p>
                 </div>
               )
@@ -348,11 +284,6 @@ export default function TradesPage() {
                     </div>
                     <p className="text-app-text/80 text-sm mt-0.5">🎁 {trade.reward_description}</p>
                     {trade.note && <p className="text-app-text/50 text-xs mt-0.5">{trade.note}</p>}
-                    {userNames.size > 1 && (
-                      <p className="text-app-text/35 text-xs mt-0.5">
-                        {t('addedBy')} {userNames.get(trade.created_by) ?? t('unknown')}
-                      </p>
-                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="bg-red-50 text-red-500 font-bold px-3 py-1 rounded-xl text-sm">-🥕 {trade.carrots_spent}</span>
@@ -434,9 +365,9 @@ export default function TradesPage() {
                   className="flex-1 py-3 rounded-2xl border-2 border-lavender text-app-text font-semibold hover:bg-lavender/20 transition">
                   {t('cancel')}
                 </button>
-                <button type="submit" disabled={formLoading}
+                <button type="submit"
                   className="flex-1 py-3 rounded-2xl bg-primary text-white font-bold shadow hover:bg-primary/80 transition disabled:opacity-50">
-                  {formLoading ? '⏳' : t('confirmTrade')}
+                  {t('confirmTrade')}
                 </button>
               </div>
             </form>
@@ -540,9 +471,9 @@ export default function TradesPage() {
                   className="flex-1 py-3 rounded-2xl border-2 border-lavender text-app-text font-semibold hover:bg-lavender/20 transition">
                   {t('cancel')}
                 </button>
-                <button type="submit" disabled={collabLoading || collabRemaining !== 0 || collabItems.length < 2}
+                <button type="submit" disabled={collabRemaining !== 0 || collabItems.length < 2}
                   className="flex-1 py-3 rounded-2xl bg-secondary text-app-text font-bold shadow hover:bg-secondary/70 transition disabled:opacity-50">
-                  {collabLoading ? '⏳' : t('confirmTrade')}
+                  {t('confirmTrade')}
                 </button>
               </div>
             </form>

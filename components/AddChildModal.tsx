@@ -2,10 +2,9 @@
 
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
 import BunnySVG from './BunnySVG'
 import { useLanguage } from '@/contexts/LanguageContext'
-import type { User } from '@/lib/types'
+import { useStore } from '@/lib/store'
 
 const BUNNY_COLORS = [
   '#FFB7C5', '#B5EAD7', '#FFDAC1', '#C7CEEA',
@@ -14,9 +13,7 @@ const BUNNY_COLORS = [
 ]
 
 interface AddChildModalProps {
-  currentUser: User
   onClose: () => void
-  onSuccess: () => void
 }
 
 /** Generates a public_id from the child's name: alphanumeric chars + 4 random digits. */
@@ -26,65 +23,39 @@ function makePublicId(name: string): string {
   return base + digits
 }
 
-export default function AddChildModal({ currentUser, onClose, onSuccess }: AddChildModalProps) {
+export default function AddChildModal({ onClose }: AddChildModalProps) {
   const { t } = useLanguage()
+  const { doc, insert } = useStore()
   const [name, setName] = useState('')
   const [bunnyColor, setBunnyColor] = useState(BUNNY_COLORS[0])
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) return
-    setLoading(true)
     setError('')
-    const supabase = createClient()
 
-    // Co-admins create children under their main admin's ownership
-    const effectiveOwnerId = currentUser.main_admin_id || currentUser.id
-
-    // Check name uniqueness within this owner's bunnies
-    const { data: existing } = await supabase
-      .from('children')
-      .select('id')
-      .eq('created_by', effectiveOwnerId)
-      .ilike('name', trimmed)
-
-    if (existing && existing.length > 0) {
+    const clash = doc.children.some(c => c.name.toLowerCase() === trimmed.toLowerCase())
+    if (clash) {
       setError(`You already have a bunny named "${trimmed}". Please choose a different name.`)
-      setLoading(false)
       return
     }
 
-    // Generate a unique public_id (retry up to 5 times on collision)
+    // Retry a few times so two bunnies never share a public_id.
+    const taken = new Set(doc.children.map(c => c.public_id))
     let publicId = ''
     for (let attempt = 0; attempt < 5; attempt++) {
       const candidate = makePublicId(trimmed)
-      const { data: clash } = await supabase
-        .from('children')
-        .select('id')
-        .eq('public_id', candidate)
-        .maybeSingle()
-      if (!clash) { publicId = candidate; break }
+      if (!taken.has(candidate)) { publicId = candidate; break }
     }
-
     if (!publicId) {
       setError('Could not generate a unique ID. Please try again.')
-      setLoading(false)
       return
     }
 
-    const { error } = await supabase.from('children').insert({
-      name: trimmed,
-      bunny_color: bunnyColor,
-      public_id: publicId,
-      created_by: effectiveOwnerId,
-    })
-
-    if (error) setError(error.message)
-    else { onSuccess(); onClose() }
-    setLoading(false)
+    insert('children', { name: trimmed, bunny_color: bunnyColor, public_id: publicId })
+    onClose()
   }
 
   return (
@@ -135,9 +106,9 @@ export default function AddChildModal({ currentUser, onClose, onSuccess }: AddCh
               className="flex-1 py-3 rounded-2xl border-2 border-lavender text-app-text font-semibold hover:bg-lavender/20 transition">
               {t('cancel')}
             </button>
-            <button type="submit" disabled={loading}
-              className="flex-1 py-3 rounded-2xl bg-primary text-white font-bold shadow hover:bg-primary/80 transition disabled:opacity-50">
-              {loading ? '⏳' : t('addBunnyBtn')}
+            <button type="submit"
+              className="flex-1 py-3 rounded-2xl bg-primary text-white font-bold shadow hover:bg-primary/80 transition">
+              {t('addBunnyBtn')}
             </button>
           </div>
         </form>

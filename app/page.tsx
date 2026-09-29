@@ -72,19 +72,13 @@ export default function LandingPage() {
           </form>
         </div>
 
-        {/* Owner actions */}
-        <div className="w-full max-w-md flex gap-3">
+        {/* Parent entry point */}
+        <div className="w-full max-w-md">
           <Link
-            href="/login"
-            className="flex-1 py-3 rounded-2xl border-2 border-lavender text-app-text font-semibold text-center hover:bg-lavender/20 transition"
+            href="/dashboard"
+            className="block w-full py-3 rounded-2xl bg-secondary text-app-text font-bold text-center hover:bg-secondary/70 transition shadow"
           >
-            {lang === 'en' ? 'Owner Login' : '家長登入'}
-          </Link>
-          <Link
-            href="/login"
-            className="flex-1 py-3 rounded-2xl bg-secondary text-app-text font-bold text-center hover:bg-secondary/70 transition shadow"
-          >
-            {lang === 'en' ? 'Create Account' : '建立帳號'}
+            {lang === 'en' ? '🐰 Open Dashboard' : '🐰 開啟管理頁面'}
           </Link>
         </div>
       </main>

@@ -6,22 +6,20 @@ import { useState } from 'react'
 import BunnySVG from './BunnySVG'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { getAvailableCarrots } from '@/lib/balance'
-import type { Child, ScoreEntry, Trade, User } from '@/lib/types'
+import type { Child, ScoreEntry, Trade } from '@/lib/types'
 
 interface BunnyCardProps {
   child: Child
   entries: ScoreEntry[]
   trades: Trade[]
   month: string // "YYYY-MM"
-  currentUser: User | null
   onAddScore: (child: Child) => void
 }
 
-export default function BunnyCard({ child, entries, trades, month, currentUser, onAddScore }: BunnyCardProps) {
+export default function BunnyCard({ child, entries, trades, month, onAddScore }: BunnyCardProps) {
   const { t } = useLanguage()
   const [copied, setCopied] = useState(false)
   const available = getAvailableCarrots(child.id, entries, trades)
-  const isOwner = currentUser?.role === 'owner'
 
   const handleCopyId = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -50,15 +48,13 @@ export default function BunnyCard({ child, entries, trades, month, currentUser, 
         </div>
       </Link>
 
-      {isOwner && (
-        <button
-          onClick={() => onAddScore(child)}
-          className="flex items-center gap-2 bg-secondary text-app-text font-semibold px-4 py-2 rounded-2xl hover:bg-secondary/80 transition w-full justify-center mt-1"
-        >
-          <Plus size={18} />
-          {t('addScore')}
-        </button>
-      )}
+      <button
+        onClick={() => onAddScore(child)}
+        className="flex items-center gap-2 bg-secondary text-app-text font-semibold px-4 py-2 rounded-2xl hover:bg-secondary/80 transition w-full justify-center mt-1"
+      >
+        <Plus size={18} />
+        {t('addScore')}
+      </button>
     </div>
   )
 }

@@ -1,15 +1,13 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRef } from 'react'
 import { Download } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
-import { getCurrentUser } from '@/lib/auth'
 import Navbar from '@/components/Navbar'
 import BunnySVG from '@/components/BunnySVG'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useStore } from '@/lib/store'
 import { getAvailableCarrots } from '@/lib/balance'
-import type { Child, ScoreEntry, Trade, User } from '@/lib/types'
+import type { Child } from '@/lib/types'
 
 interface RankedChild {
   child: Child
@@ -24,14 +22,18 @@ const RANK_STYLES: Record<number, { badge: string; bg: string; border: string }>
 }
 
 export default function LeaderboardPage() {
-  const router = useRouter()
   const { t } = useLanguage()
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [ranked, setRanked] = useState<RankedChild[]>([])
-  const [loading, setLoading] = useState(true)
+  const { doc, loading } = useStore()
   const reportRef = useRef<HTMLDivElement>(null)
 
-  const supabase = createClient()
+  const ranked: RankedChild[] = [...doc.children]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(child => ({
+      child,
+      availableCarrots: getAvailableCarrots(child.id, doc.score_entries, doc.trades),
+    }))
+    .sort((a, b) => b.availableCarrots - a.availableCarrots)
+    .map((item, idx) => ({ ...item, rank: idx + 1 }))
 
   const handleExport = async () => {
     if (!reportRef.current) return
@@ -66,33 +68,6 @@ export default function LeaderboardPage() {
     pdf.save(`leaderboard-${new Date().toISOString().split('T')[0]}.pdf`)
   }
 
-  useEffect(() => {
-    const load = async () => {
-      const user = await getCurrentUser()
-      if (!user) { router.push('/login'); return }
-      setCurrentUser(user)
-
-      const [{ data: kids }, { data: entriesData }, { data: tradesData }] = await Promise.all([
-        supabase.from('children').select('*').order('name'),
-        supabase.from('score_entries').select('*'),
-        supabase.from('trades').select('*'),
-      ])
-
-      const children: Child[] = kids || []
-      const entries: ScoreEntry[] = entriesData || []
-      const trades: Trade[] = tradesData || []
-
-      const sorted = children
-        .map(child => ({ child, availableCarrots: getAvailableCarrots(child.id, entries, trades) }))
-        .sort((a, b) => b.availableCarrots - a.availableCarrots)
-        .map((item, idx) => ({ ...item, rank: idx + 1 }))
-
-      setRanked(sorted)
-      setLoading(false)
-    }
-    load()
-  }, [])
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -103,7 +78,7 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar currentUser={currentUser} />
+      <Navbar />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
