@@ -37,10 +37,8 @@ function ChildDetail() {
   const rewards = [...doc.reward_items].sort((a, b) => a.carrot_threshold - b.carrot_threshold)
   const trades = doc.trades.filter(t => t.child_id === id)
 
-  const today = new Date().toISOString().split('T')[0]
   const monthEntries = allEntries.filter(e => e.date.startsWith(currentMonth))
   const totalCarrots = monthEntries.reduce((sum, e) => sum + e.points, 0)
-  const todayCarrots = allEntries.filter(e => e.date === today).reduce((sum, e) => sum + e.points, 0)
   const isOwner = true
 
   const availableCarrots = getAvailableCarrots(id, allEntries, trades)
@@ -265,11 +263,7 @@ function ChildDetail() {
       </main>
 
       {showAddScore && (
-        <AddScoreModal
-          child={child}
-          onClose={() => setShowAddScore(false)}
-          currentDayEarned={todayCarrots}
-        />
+        <AddScoreModal child={child} onClose={() => setShowAddScore(false)} />
       )}
 
       {/* Delete Bunny Confirmation Modal */}

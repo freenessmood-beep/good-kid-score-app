@@ -12,7 +12,6 @@ export function emptyDoc(): DataDoc {
     reward_items: [],
     earning_rules: [],
     bug_reports: [],
-    settings: { passcode: null, max_carrots_cap: null },
   }
 }
 
@@ -30,7 +29,6 @@ export function normalizeDoc(raw: unknown): DataDoc {
     reward_items: d.reward_items ?? [],
     earning_rules: d.earning_rules ?? [],
     bug_reports: d.bug_reports ?? [],
-    settings: { ...base.settings, ...(d.settings ?? {}) },
   }
 }
 
@@ -47,18 +45,12 @@ export type Op =
   | { type: 'update'; table: Table; id: string; patch: Record<string, unknown> }
   | { type: 'delete'; table: Table; id: string }
   | { type: 'deleteWhere'; table: Table; field: string; value: string }
-  | { type: 'settings'; patch: Record<string, unknown> }
 
 type Row = Record<string, unknown> & { id: string }
 
 /** Apply one op to a document, returning a new document. Pure. */
 export function applyOp(doc: DataDoc, op: Op): DataDoc {
   const next: DataDoc = { ...doc, updated_at: new Date().toISOString() }
-
-  if (op.type === 'settings') {
-    next.settings = { ...doc.settings, ...op.patch }
-    return next
-  }
 
   const rows = (doc[op.table] ?? []) as unknown as Row[]
 
@@ -97,8 +89,6 @@ export function isOp(v: unknown): v is Op {
   const o = v as Record<string, unknown>
   const tables = ['children', 'score_entries', 'trades', 'reward_items', 'earning_rules', 'bug_reports']
   switch (o.type) {
-    case 'settings':
-      return typeof o.patch === 'object' && o.patch !== null
     case 'insert':
       return tables.includes(o.table as string) && typeof o.row === 'object' && o.row !== null
         && typeof (o.row as Record<string, unknown>).id === 'string'

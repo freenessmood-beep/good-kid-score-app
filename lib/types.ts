@@ -57,13 +57,6 @@ export interface BugReport {
   created_at: string
 }
 
-export interface Settings {
-  /** 4-digit gate for adding scores. null = no gate. */
-  passcode: string | null
-  /** Max carrots earnable per day. null = no limit. */
-  max_carrots_cap: number | null
-}
-
 /** The whole database: one JSON document in a private GitHub repo. */
 export interface DataDoc {
   version: number
@@ -74,7 +67,6 @@ export interface DataDoc {
   reward_items: RewardItem[]
   earning_rules: EarningRule[]
   bug_reports: BugReport[]
-  settings: Settings
 }
 
 /** Collections that ops can target. */

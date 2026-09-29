@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { applyOps, emptyDoc, newId, normalizeDoc, type Op } from './doc'
 import { commitOps, getRepo, getToken, hasCredentials, readDoc, setRepo, setToken, verify } from './gh'
-import type { DataDoc, Settings, Table } from './types'
+import type { DataDoc, Table } from './types'
 
 const CACHE_KEY = 'bunny-adventure-doc-v1'
 const DEBOUNCE_MS = 600
@@ -33,7 +33,6 @@ interface StoreValue {
   update: (table: Table, id: string, patch: Record<string, unknown>) => void
   remove: (table: Table, id: string) => void
   removeWhere: (table: Table, field: string, value: string) => void
-  saveSettings: (patch: Partial<Settings>) => void
   /** Checks the credentials against GitHub, stores them, then loads. */
   connect: (token: string, repo: string) => Promise<void>
   disconnect: () => void
@@ -48,11 +47,6 @@ export function useStore(): StoreValue {
   const ctx = useContext(StoreContext)
   if (!ctx) throw new Error('useStore must be used inside <StoreProvider>')
   return ctx
-}
-
-/** Convenience: the settings object on its own. */
-export function useSettings(): Settings {
-  return useStore().doc.settings
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -252,12 +246,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [enqueue]
   )
 
-  const saveSettings = useCallback(
-    (patch: Partial<Settings>) =>
-      enqueue([{ type: 'settings', patch: patch as Record<string, unknown> }]),
-    [enqueue]
-  )
-
   const retry = useCallback(() => {
     failures.current = 0
     if (queue.current.length > 0) flush()
@@ -278,7 +266,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         update,
         remove,
         removeWhere,
-        saveSettings,
         connect,
         disconnect,
         repo,

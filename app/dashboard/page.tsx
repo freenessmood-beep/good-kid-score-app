@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, ChevronLeft, ChevronRight, Lock, X, Gauge } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import BunnyCard from '@/components/BunnyCard'
 import AddScoreModal from '@/components/AddScoreModal'
@@ -13,48 +13,17 @@ import type { Child } from '@/lib/types'
 
 export default function Dashboard() {
   const { t } = useLanguage()
-  const { doc, loading, loadError, saveSettings } = useStore()
-  const { children, score_entries: entries, trades, reward_items: rewards, settings } = doc
+  const { doc, loading, loadError } = useStore()
+  const { children, score_entries: entries, trades, reward_items: rewards } = doc
 
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [showAddChild, setShowAddChild] = useState(false)
-
-  const [showPasscodeModal, setShowPasscodeModal] = useState(false)
-  const [currentPasscode, setCurrentPasscode] = useState('')
-  const [newPasscode, setNewPasscode] = useState('')
-  const [confirmPasscode, setConfirmPasscode] = useState('')
-  const [passcodeMsg, setPasscodeMsg] = useState('')
-
-  const [showCapModal, setShowCapModal] = useState(false)
-  const [capInput, setCapInput] = useState('')
-  const [capMsg, setCapMsg] = useState('')
 
   const todayMonth = (() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })()
   const [selectedMonth, setSelectedMonth] = useState(todayMonth)
-
-  const handleSaveMaxCap = () => {
-    setCapMsg('')
-    const cap = parseInt(capInput)
-    if (isNaN(cap) || cap < 0) { setCapMsg('Please enter a valid number (0 = no limit).'); return }
-    saveSettings({ max_carrots_cap: cap === 0 ? null : cap })
-    setCapMsg(cap === 0 ? t('maxCapRemoved') : t('maxCapSet'))
-    setCapInput('')
-  }
-
-  const handleSavePasscode = () => {
-    setPasscodeMsg('')
-    if (settings.passcode && currentPasscode !== settings.passcode) {
-      setPasscodeMsg(t('wrongPasscode')); return
-    }
-    if (!/^\d{4}$/.test(newPasscode)) { setPasscodeMsg(t('passcodeInvalid')); return }
-    if (newPasscode !== confirmPasscode) { setPasscodeMsg(t('passcodeMismatch')); return }
-    saveSettings({ passcode: newPasscode })
-    setPasscodeMsg(t('passcodeSet'))
-    setCurrentPasscode(''); setNewPasscode(''); setConfirmPasscode('')
-  }
 
   const changeMonth = (dir: number) => {
     const [y, m] = selectedMonth.split('-').map(Number)
@@ -109,28 +78,12 @@ export default function Dashboard() {
               <ChevronRight size={20} />
             </button>
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <button
-              onClick={() => { setShowPasscodeModal(true); setPasscodeMsg('') }}
-              className="flex items-center gap-1 text-sm bg-lavender text-app-text font-semibold px-3 py-2 rounded-2xl hover:bg-lavender/70 transition"
-              title={t('setPasscode')}
-            >
-              <Lock size={16} /> {settings.passcode ? t('changePasscode') : t('setPasscode')}
-            </button>
-            <button
-              onClick={() => { setShowCapModal(true); setCapMsg(''); setCapInput(settings.max_carrots_cap ? String(settings.max_carrots_cap) : '') }}
-              className="flex items-center gap-1 text-sm bg-lemon text-app-text font-semibold px-3 py-2 rounded-2xl hover:bg-lemon/70 transition border-2 border-lavender"
-              title={t('setMaxCap')}
-            >
-              <Gauge size={16} /> {settings.max_carrots_cap ? `🥕${settings.max_carrots_cap}` : t('setMaxCap')}
-            </button>
-            <button
-              onClick={() => setShowAddChild(true)}
-              className="flex items-center gap-1 text-sm bg-primary text-white font-semibold px-3 py-2 rounded-2xl hover:bg-primary/80 transition"
-            >
-              <Plus size={16} /> {t('addBunny')}
-            </button>
-          </div>
+          <button
+            onClick={() => setShowAddChild(true)}
+            className="flex items-center gap-1 text-sm bg-primary text-white font-semibold px-3 py-2 rounded-2xl hover:bg-primary/80 transition"
+          >
+            <Plus size={16} /> {t('addBunny')}
+          </button>
         </div>
 
         {/* Export All PDF button */}
@@ -171,110 +124,9 @@ export default function Dashboard() {
 
       {/* Modals */}
       {selectedChild && (
-        <AddScoreModal
-          child={selectedChild}
-          onClose={() => setSelectedChild(null)}
-          currentDayEarned={entries
-            .filter(e => e.child_id === selectedChild.id && e.date === new Date().toISOString().split('T')[0])
-            .reduce((s, e) => s + e.points, 0)}
-        />
+        <AddScoreModal child={selectedChild} onClose={() => setSelectedChild(null)} />
       )}
       {showAddChild && <AddChildModal onClose={() => setShowAddChild(false)} />}
-
-      {/* Max Carrots Cap Modal */}
-      {showCapModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-xl border-2 border-primary/30 p-6 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-app-text">🥕 {t('setMaxCap')}</h2>
-              <button onClick={() => { setShowCapModal(false); setCapMsg('') }} className="text-app-text/50 hover:text-app-text"><X size={24} /></button>
-            </div>
-            <div className="space-y-4">
-              <p className="text-sm text-app-text/60">{t('maxCapHint')}</p>
-              <div>
-                <label className="block text-sm font-semibold text-app-text mb-1">{t('maxCapLabel')}</label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  value={capInput}
-                  onChange={e => setCapInput(e.target.value)}
-                  placeholder="e.g. 30"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text text-center text-2xl font-bold"
-                />
-              </div>
-              {capMsg && (
-                <p className={`text-sm text-center ${capMsg.startsWith('✅') || capMsg.includes('🥕') ? 'text-green-600' : 'text-red-500'}`}>{capMsg}</p>
-              )}
-              <button onClick={handleSaveMaxCap} className="w-full py-3 rounded-2xl bg-primary text-white font-bold shadow hover:bg-primary/80 transition">
-                {t('setMaxCap')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showPasscodeModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-xl border-2 border-primary/30 p-6 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-app-text">🔐 {settings.passcode ? t('changePasscode') : t('setPasscode')}</h2>
-              <button onClick={() => { setShowPasscodeModal(false); setCurrentPasscode(''); setNewPasscode(''); setConfirmPasscode(''); setPasscodeMsg('') }} className="text-app-text/50 hover:text-app-text"><X size={24} /></button>
-            </div>
-            <div className="space-y-4">
-              {settings.passcode && (
-                <div>
-                  <label className="block text-sm font-semibold text-app-text mb-1">{t('enterPasscode')}</label>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    value={currentPasscode}
-                    onChange={e => setCurrentPasscode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="••••"
-                    className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text text-center text-2xl tracking-widest"
-                  />
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-semibold text-app-text mb-1">{t('passcodeLabel')}</label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={newPasscode}
-                  onChange={e => setNewPasscode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="••••"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text text-center text-2xl tracking-widest"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-app-text mb-1">{t('confirmPasscodeLabel')}</label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={confirmPasscode}
-                  onChange={e => setConfirmPasscode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="••••"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-lavender focus:border-primary outline-none bg-lemon/30 text-app-text text-center text-2xl tracking-widest"
-                />
-              </div>
-              {passcodeMsg && (
-                <p className={`text-sm text-center ${passcodeMsg.includes('🔐') ? 'text-green-600' : 'text-red-500'}`}>
-                  {passcodeMsg}
-                </p>
-              )}
-              <button
-                onClick={handleSavePasscode}
-                className="w-full py-3 rounded-2xl bg-primary text-white font-bold shadow hover:bg-primary/80 transition"
-              >
-                {t('setPasscode')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -154,7 +154,7 @@ function headers(token: string) {
 
 function commitMessage(ops: Op[]): string {
   const summary = ops
-    .map(op => (op.type === 'settings' ? 'settings' : op.type + ' ' + op.table))
+    .map(op => op.type + ' ' + op.table)
     .filter((v, i, a) => a.indexOf(v) === i)
     .join(', ')
   const count = ops.length === 1 ? '1 change' : ops.length + ' changes'
