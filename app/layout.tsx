@@ -1,16 +1,21 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { StoreProvider } from '@/lib/store'
-import Footer from '@/components/Footer'
+import AppGate from '@/components/AppGate'
 
 export const metadata: Metadata = {
   title: 'Bunny Adventure | 乖寶寶記分',
   description: 'Track your children\'s good behavior with cute bunny characters and carrot points!',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   icons: {
-    icon: '/favicon.svg',
+    icon: 'favicon.svg',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({
@@ -23,10 +28,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background font-baloo flex flex-col">
         <LanguageProvider>
           <StoreProvider>
-            <div className="flex-1">
-              {children}
-            </div>
-            <Footer />
+            <AppGate>{children}</AppGate>
           </StoreProvider>
         </LanguageProvider>
       </body>

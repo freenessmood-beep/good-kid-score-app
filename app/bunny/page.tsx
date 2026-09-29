@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useParams } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import BunnySVG from '@/components/BunnySVG'
@@ -9,8 +9,8 @@ import { useStore } from '@/lib/store'
 import { getAvailableCarrots } from '@/lib/balance'
 import type { ScoreEntry } from '@/lib/types'
 
-export default function PublicBunnyPage() {
-  const { public_id } = useParams<{ public_id: string }>()
+function PublicBunny() {
+  const public_id = useSearchParams().get('id') ?? ''
   const { doc, loading } = useStore()
 
   const child = doc.children.find(c => c.public_id === public_id) ?? null
@@ -148,5 +148,19 @@ export default function PublicBunnyPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function PublicBunnyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-6xl animate-bounce">🐰</div>
+        </div>
+      }
+    >
+      <PublicBunny />
+    </Suspense>
   )
 }

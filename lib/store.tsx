@@ -10,10 +10,11 @@ import {
   type ReactNode,
 } from 'react'
 import { applyOps, emptyDoc, newId, normalizeDoc, type Op } from './doc'
+import { commitOps, getRepo, getToken, hasCredentials, readDoc, setRepo, setToken, verify } from './gh'
 import type { DataDoc, Settings, Table } from './types'
 
 const CACHE_KEY = 'bunny-adventure-doc-v1'
-const DEBOUNCE_MS = 800
+const DEBOUNCE_MS = 600
 const MAX_RETRIES = 3
 
 export type SyncState = 'loading' | 'idle' | 'saving' | 'pending' | 'error'
@@ -22,7 +23,8 @@ interface StoreValue {
   doc: DataDoc
   /** True until the first load settles. Cached data may already be visible. */
   loading: boolean
-  /** Set when the initial load failed outright. */
+  /** No token stored in this browser yet, so the setup screen should show. */
+  needsSetup: boolean
   loadError: string | null
   sync: SyncState
   syncError: string | null
@@ -32,6 +34,10 @@ interface StoreValue {
   remove: (table: Table, id: string) => void
   removeWhere: (table: Table, field: string, value: string) => void
   saveSettings: (patch: Partial<Settings>) => void
+  /** Checks the credentials against GitHub, stores them, then loads. */
+  connect: (token: string, repo: string) => Promise<void>
+  disconnect: () => void
+  repo: string
   reload: () => Promise<void>
   retry: () => void
 }
@@ -52,9 +58,11 @@ export function useSettings(): Settings {
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [doc, setDoc] = useState<DataDoc>(emptyDoc)
   const [loading, setLoading] = useState(true)
+  const [needsSetup, setNeedsSetup] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [sync, setSync] = useState<SyncState>('loading')
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [repo, setRepoState] = useState('')
 
   const queue = useRef<Op[]>([])
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -79,6 +87,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const flush = useCallback(async () => {
     if (inFlight.current || queue.current.length === 0) return
+    if (!hasCredentials()) return
 
     const sending = queue.current
     queue.current = []
@@ -86,24 +95,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSync('saving')
 
     try {
-      const res = await fetch('/api/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ops: sending }),
-      })
-      const json = (await res.json().catch(() => ({}))) as { doc?: unknown; error?: string }
-      if (!res.ok) throw new Error(json.error || 'Save failed (' + res.status + ')')
-
+      const saved = await commitOps(sending)
       failures.current = 0
       setSyncError(null)
-      // Ops queued while this request was in flight are not in the server copy yet.
-      commit(applyOps(normalizeDoc(json.doc), queue.current))
+      // Ops queued while the request was in flight are not in the saved copy yet.
+      commit(applyOps(saved, queue.current))
       setSync(queue.current.length > 0 ? 'pending' : 'idle')
     } catch (err) {
       // Nothing is dropped: put the unsaved ops back at the head of the queue.
       queue.current = [...sending, ...queue.current]
       failures.current += 1
-      setSyncError(err instanceof Error ? err.message : 'Could not reach storage.')
+      setSyncError(err instanceof Error ? err.message : 'Could not reach GitHub.')
       setSync('error')
     } finally {
       inFlight.current = false
@@ -135,12 +137,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   )
 
   const load = useCallback(async () => {
+    if (!hasCredentials()) {
+      setNeedsSetup(true)
+      setLoading(false)
+      setSync('idle')
+      return
+    }
+    setNeedsSetup(false)
     try {
-      const res = await fetch('/api/data', { cache: 'no-store' })
-      const json = (await res.json().catch(() => ({}))) as { doc?: unknown; error?: string }
-      if (!res.ok) throw new Error(json.error || 'Load failed (' + res.status + ')')
+      const { doc: remote } = await readDoc()
       // Local edits that have not reached GitHub yet must survive a reload.
-      commit(applyOps(normalizeDoc(json.doc), queue.current))
+      commit(applyOps(remote, queue.current))
       setLoadError(null)
       setSync(queue.current.length > 0 ? 'pending' : 'idle')
     } catch (err) {
@@ -155,6 +162,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Paint from cache first so the app is usable immediately, and offline.
   useEffect(() => {
+    setRepoState(getRepo())
     try {
       const cached = localStorage.getItem(CACHE_KEY)
       if (cached) setDoc(normalizeDoc(JSON.parse(cached)))
@@ -165,23 +173,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [load])
 
   // Best effort: get pending edits out before a mobile browser freezes the tab.
+  // A beacon cannot carry the Authorization header, so this is a normal flush.
   useEffect(() => {
-    const handler = () => {
-      if (queue.current.length === 0 || inFlight.current) return
-      const body = new Blob([JSON.stringify({ ops: queue.current })], { type: 'application/json' })
-      if (navigator.sendBeacon && navigator.sendBeacon('/api/data', body)) queue.current = []
-      else flush()
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flush()
     }
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') handler()
-    }
-    window.addEventListener('pagehide', handler)
-    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onHide)
     return () => {
-      window.removeEventListener('pagehide', handler)
-      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onHide)
     }
   }, [flush])
+
+  const connect = useCallback(
+    async (token: string, nextRepo: string) => {
+      await verify(token.trim(), nextRepo.trim())
+      setToken(token)
+      setRepo(nextRepo)
+      setRepoState(nextRepo.trim())
+      setNeedsSetup(false)
+      setLoading(true)
+      await load()
+    },
+    [load]
+  )
+
+  const disconnect = useCallback(() => {
+    setToken('')
+    try {
+      localStorage.removeItem(CACHE_KEY)
+    } catch {
+      // ignore
+    }
+    queue.current = []
+    setDoc(emptyDoc())
+    setNeedsSetup(true)
+    setSync('idle')
+    setSyncError(null)
+    setLoadError(null)
+  }, [])
 
   const insert = useCallback(
     (table: Table, row: Record<string, unknown>) => {
@@ -229,14 +260,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const retry = useCallback(() => {
     failures.current = 0
-    flush()
-  }, [flush])
+    if (queue.current.length > 0) flush()
+    else load()
+  }, [flush, load])
 
   return (
     <StoreContext.Provider
       value={{
         doc,
         loading,
+        needsSetup,
         loadError,
         sync,
         syncError,
@@ -246,6 +279,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         remove,
         removeWhere,
         saveSettings,
+        connect,
+        disconnect,
+        repo,
         reload: load,
         retry,
       }}
@@ -254,3 +290,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     </StoreContext.Provider>
   )
 }
+
+/** Re-exported so callers do not need to reach into lib/gh directly. */
+export { getToken, hasCredentials }

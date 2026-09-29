@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2, Edit2, Check, X, Copy, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
@@ -13,9 +13,9 @@ import { useStore } from '@/lib/store'
 import { getAvailableCarrots } from '@/lib/balance'
 import type { ScoreEntry } from '@/lib/types'
 
-export default function ChildDetailPage() {
+function ChildDetail() {
   const router = useRouter()
-  const { id } = useParams<{ id: string }>()
+  const id = useSearchParams().get('id') ?? ''
   const { t } = useLanguage()
   const { doc, loading, update, remove, removeWhere } = useStore()
   const [showAddScore, setShowAddScore] = useState(false)
@@ -135,7 +135,7 @@ export default function ChildDetailPage() {
                   {copiedId ? <Check size={14} /> : <Copy size={14} />}
                 </button>
                 <a
-                  href={`/bunny/${child.public_id}`}
+                  href={`/bunny?id=${encodeURIComponent(child.public_id)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-1 rounded-lg hover:bg-lavender/30 text-app-text/50 hover:text-app-text transition"
@@ -297,5 +297,19 @@ export default function ChildDetailPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function ChildDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-6xl animate-bounce">🐰</div>
+        </div>
+      }
+    >
+      <ChildDetail />
+    </Suspense>
   )
 }

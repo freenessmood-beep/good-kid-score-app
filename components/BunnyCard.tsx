@@ -30,7 +30,7 @@ export default function BunnyCard({ child, entries, trades, month, onAddScore }:
 
   return (
     <div className="bg-white rounded-3xl shadow-md border-2 border-primary/20 p-6 flex flex-col items-center gap-3 hover:shadow-lg transition-shadow">
-      <Link href={`/child/${child.id}`} className="flex flex-col items-center gap-3 w-full">
+      <Link href={`/child?id=${encodeURIComponent(child.id)}`} className="flex flex-col items-center gap-3 w-full">
         <BunnySVG color={child.bunny_color} size={100} />
         <h2 className="text-xl font-bold text-app-text">{child.name}</h2>
         {child.public_id && (

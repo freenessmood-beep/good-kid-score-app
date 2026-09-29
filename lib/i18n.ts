@@ -227,6 +227,25 @@ const translations = {
     syncRetry: 'Retry',
     syncOffline: 'Offline — changes are queued',
     storageSetup: 'Storage is not set up yet.',
+
+    // First-run GitHub connection
+    setupTitle: 'Connect to GitHub',
+    setupIntro: 'Your bunnies live in your own private GitHub repo. Paste an access token once and this device will remember it.',
+    setupStep1: 'Open the token page on GitHub',
+    setupStep2: 'Under Repository access pick Only select repositories, then choose your data repo',
+    setupStep3: 'Under Permissions set Contents to Read and write',
+    setupStep4: 'Generate the token, copy it, and paste it below',
+    setupCreateToken: 'Open GitHub token page',
+    setupTokenLabel: 'Access token',
+    setupRepoLabel: 'Data repo',
+    setupConnect: 'Connect',
+    setupChecking: 'Checking…',
+    setupPrivacy: 'Stored in this browser only. It is never sent anywhere except GitHub.',
+    setupNeedToken: 'Please paste your token.',
+    setupNeedRepo: 'Please enter the data repo, as owner/repo.',
+    disconnectTitle: 'Disconnect this device',
+    disconnectConfirm: 'Forget the token on this device? Your data stays safe in GitHub.',
+    disconnect: 'Disconnect',
   },
   zh: {
     // App
@@ -454,6 +473,25 @@ const translations = {
     syncRetry: '重試',
     syncOffline: '離線中 — 變更已排入佇列',
     storageSetup: '儲存空間尚未設定。',
+
+    // First-run GitHub connection
+    setupTitle: '連結 GitHub',
+    setupIntro: '兔兔資料存放在你自己的私人 GitHub 儲存庫。只要貼上存取權杖一次，這台裝置就會記住。',
+    setupStep1: '開啟 GitHub 的權杖頁面',
+    setupStep2: '在 Repository access 選擇 Only select repositories，然後選你的資料儲存庫',
+    setupStep3: '在 Permissions 將 Contents 設為 Read and write',
+    setupStep4: '產生權杖並複製，貼到下方',
+    setupCreateToken: '開啟 GitHub 權杖頁面',
+    setupTokenLabel: '存取權杖',
+    setupRepoLabel: '資料儲存庫',
+    setupConnect: '連結',
+    setupChecking: '檢查中…',
+    setupPrivacy: '只會存在這個瀏覽器，除了 GitHub 以外不會傳送到任何地方。',
+    setupNeedToken: '請貼上你的權杖。',
+    setupNeedRepo: '請輸入資料儲存庫，格式為 owner/repo。',
+    disconnectTitle: '解除這台裝置的連結',
+    disconnectConfirm: '要忘記這台裝置上的權杖嗎？你的資料仍安全存放在 GitHub。',
+    disconnect: '解除連結',
   }
 }
 

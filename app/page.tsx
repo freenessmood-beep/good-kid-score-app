@@ -16,7 +16,7 @@ export default function LandingPage() {
     e.preventDefault()
     const id = bunnyId.trim()
     if (!id) { setError('Please enter a Bunny ID.'); return }
-    router.push(`/bunny/${id}`)
+    router.push(`/bunny?id=${encodeURIComponent(id)}`)
   }
 
   return (
